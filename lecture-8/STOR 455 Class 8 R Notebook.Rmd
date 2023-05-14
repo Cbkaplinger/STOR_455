@@ -1,0 +1,222 @@
+---
+title: "STOR 455 Class 8 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+library(metRology) # for curve plotting
+library(tidyr) # easy functions and syntax for creating tidy data
+source("CIPIPlot.R") 
+
+lego <- read_csv("lego.csv")
+lego_under_800_pieces = subset(lego, Pieces < 800)
+```
+
+
+```{r}
+modlego = lm(Amazon_Price~Pieces, data=lego_under_800_pieces)
+
+plot(Amazon_Price~Pieces, data=lego_under_800_pieces)
+abline(modlego, col="red")
+
+summary(modlego)
+
+plot(modlego, c(1, 2, 5))
+```
+
+
+```{r}
+# transformation to make a better fit
+modlego2 = lm(Amazon_Price^(0.3)~Pieces, data=lego_under_800_pieces)
+
+plot(Amazon_Price^(0.3)~Pieces, data=lego_under_800_pieces)
+abline(modlego2, col="red")
+
+summary(modlego2)
+
+plot(modlego2, c(1, 2, 5))
+```
+
+Amazon_Price^(3/10) = B0+B1*Pieces
+
+Amazon_Price=(B0+B1*Pieces)^(10/3)
+
+
+```{r}
+# Plotting the fitted curve
+plot(Amazon_Price~Pieces, data = lego_under_800_pieces)
+
+B0 = summary(modlego2)$coef[1,1]
+B1 = summary(modlego2)$coef[2,1]
+
+curve((B0+B1*x)^(10/3), add = TRUE, col = "red")
+```
+
+
+```{r}
+# Display the Student's t distributions with various
+# degrees of freedom and compare to the normal distribution
+
+x <- seq(-4, 4, length=100)
+hx <- dnorm(x)
+
+degf <- c(1, 5, 15, 30)
+colors <- c("red", "blue", "darkgreen", "gold", "black")
+labels <- c("df=1", "df=5", "df=15", "df=30", "normal")
+
+plot(x, hx, type="l", lty=2, xlab="x value",
+  ylab="Density", main="Comparison of t Distributions")
+
+for (i in 1:4){
+  lines(x, dt(x,degf[i]), lwd=2, col=colors[i])
+}
+
+legend("topright", inset=.05, title="Distributions",
+  labels, lwd=2, lty=c(1, 1, 1, 1, 2), col=colors)
+```
+
+
+```{r}
+# plotting the quantiles for the confidence interval.
+qt(0.975, 716)
+
+curve(
+  dt.scaled(
+    x, 
+    716,
+    mean = summary(modlego2)$coef[2,1],
+    sd = summary(modlego2)$coef[2,2]
+    ), 
+  from = 0.00190, to = 0.00255,
+  )
+
+
+abline(
+  v=c(
+    qt.scaled(
+      0.025, 
+      716, 
+      mean = summary(modlego2)$coef[2,1], 
+      sd = summary(modlego2)$coef[2,2]
+      ),
+    qt.scaled(
+      0.975, 
+      716, 
+      mean = summary(modlego2)$coef[2,1], 
+      sd = summary(modlego2)$coef[2,2]
+      )
+    )
+  )
+```
+
+
+```{r}
+# manual calculation of the confidence interval for the slope
+summary(modlego2)$coef
+
+summary(modlego2)$coef[2,1]-qt(0.975,716)*summary(modlego2)$coef[2,2]
+summary(modlego2)$coef[2,1]+qt(0.975,716)*summary(modlego2)$coef[2,2]
+```
+
+
+```{r}
+# use confint() to automatically obtain the confidence intervals
+confint(modlego2, level = 0.95)
+```
+
+
+```{r}
+# use the model
+newx=data.frame(Pieces=127)
+head(newx)
+
+# predict.lm() provides inference for the fitted line
+# confidence interval for the line after transformation when pieces=127
+predict.lm(modlego2, newx, interval = "confidence")^(10/3)
+
+# prediction interval for the transformed price when pieces =127
+predict.lm(modlego2, newx, interval = "prediction")^(10/3)
+```
+
+
+```{r}
+# tranform back to the original scale
+
+```
+
+
+```{r}
+# showing CI for the fitted model in red, PI for the fitted model in blue 
+CIPIPlot(lego_under_800_pieces$Pieces, lego_under_800_pieces$Amazon_Price^(0.3))
+```
+
+```{r}
+# t-test for slopes
+summary(modlego2)
+```
+
+
+```{r}
+# Using tidyr to remove rows with nas. Export data for Statkey for randomization inference of the slope.
+dataframe_to_write = lego_under_800_pieces %>% drop_na('Pieces', 'Amazon_Price')
+dataframe_to_write$Amazon_Price_transformed = dataframe_to_write$Amazon_Price^0.3
+
+write.csv(dataframe_to_write, 
+          file = "lego_under_800_pieces.csv", 
+          row.names=FALSE
+)
+```
+
+
+```{r}
+# cor() finds the pairwise correlation in data. this line results in NA due to NAs in the data 
+cor(lego_under_800_pieces$Pieces, lego_under_800_pieces$Amazon_Price^(0.3))
+```
+
+
+```{r}
+# use="complete.obs" to avoid observations containing at least one NA. 
+cor(lego_under_800_pieces$Pieces, lego_under_800_pieces$Amazon_Price^(0.3), use="complete.obs")
+```
+
+
+```{r}
+# another example of cor()
+data(Houses)
+head(Houses)
+
+cor(Houses)
+```
+
+
+```{r}
+# another example of cor(). cor() won't work with categorical data
+data(Cereal)
+head(Cereal)
+
+#cor(Cereal)
+
+cor(Cereal[c(2:4)])
+```
+
+
+```{r}
+# testing if a correlation is 0.
+cor.test(lego_under_800_pieces$Pieces, lego_under_800_pieces$Amazon_Price^(0.3))
+```
+
+
+```{r}
+# anova() provides the ANOVA table
+anova(modlego2)
+```
+
+
+```{r}
+summary(modlego2)
+```

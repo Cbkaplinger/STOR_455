@@ -1,0 +1,173 @@
+---
+title: "STOR 455 - Class 16 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+
+Turtles2 = read_csv("Turtles2.csv")
+source("ShowSubsets.R")
+
+# Focusing only on adult turtles
+Turtles3 = subset(Turtles2, LifeStage == "Adult")
+
+head(Turtles3)
+```
+
+
+```{r}
+# Weather is coded as 1 to 3. Seems not mattering much...
+modelW = lm(Annuli ~ Weather, data=Turtles3)
+summary(modelW)
+```
+
+
+```{r}
+# But "Weather" does play a role!
+plot(Annuli ~ Weather, data=Turtles3)
+abline(modelW)
+points(1,mean(Turtles3$Annuli[Turtles3$Weather==1]), col="red",cex=1,pch=16)
+points(2,mean(Turtles3$Annuli[Turtles3$Weather==2]), col="red",cex=1,pch=16)
+points(3,mean(Turtles3$Annuli[Turtles3$Weather==3]), col="red",cex=1,pch=16)
+```
+
+
+```{r}
+# tapply() applies the mean() function to each "Weather" category of Annuli. 
+tapply(Turtles3$Annuli, Turtles3$Weather, mean)
+```
+
+
+```{r}
+# Making dummy variables with the categorical predictor.
+Turtles3$NoPrecip=(Turtles3$Weather==1)*1
+Turtles3$Drizzle=(Turtles3$Weather==2)*1
+
+# The dummy predictors reflect the uneven changes in group means. Here the third category "Rain" is the baseline when NoPrecip and Drizzle are 0.
+modelW2 = lm(Annuli ~ NoPrecip + Drizzle, data = Turtles3)
+summary(modelW2)
+```
+
+
+```{r}
+# Equivalent model. But R uses the first category as the baseline.
+# factor() converts a numerical vector into categorical.
+modelW3=lm(Annuli~factor(Weather),data=Turtles3)
+summary(modelW3)
+```
+
+
+```{r}
+# A model with both quantitative and categorical predictors. Note here the effect of "Mass" is considered to be the same across different categories of "Weather."
+modelW4=lm(Annuli~Mass+factor(Weather),data=Turtles3)
+summary(modelW4)
+plot(modelW4)
+```
+
+
+```{r}
+# A model with both transformed quantitative and categorical predictors. Note here the effect of "log(Mass)" is considered to be the same across different categories of "Weather."
+modelW5=lm(log(Annuli)~log(Mass)+factor(Weather),data=Turtles3)
+summary(modelW5)
+
+plot(modelW5)
+```
+
+
+```{r}
+# A model with both transformed quantitative and categorical predictors, as well as their interaction effects.
+modelW5int=lm(log(Annuli)~ log(Mass) + factor(Weather) + log(Mass)*factor(Weather),data=Turtles3)
+summary(modelW5int)
+
+# Nested F-test
+anova(lm(log(Annuli)~log(Mass), data=Turtles3), modelW5int)
+```
+
+
+```{r}
+# All subset selection of predictors. May include interactions without the main effects.
+all=regsubsets(log(Annuli) ~
+                 log(Mass) +
+                 log(ShellHeightatHinge) +
+                 factor(Weather) +
+                 log(Mass) * factor(Weather) + 
+                 log(ShellHeightatHinge) * factor(Weather),
+               data=Turtles3,
+               )
+
+ShowSubsets(all)
+```
+
+
+```{r}
+Full = lm(log(Annuli) ~
+            log(Mass)+
+            log(ShellHeightatHinge)+
+            factor(Weather)+
+            log(Mass)*factor(Weather)+ 
+            log(ShellHeightatHinge)*factor(Weather),
+          data=Turtles3
+          )
+  
+none=lm(log(Annuli) ~ 1, data = Turtles3)
+MSE=(summary(Full)$sigma)^2
+```
+
+```{r}
+# Backward elimination.
+step(Full,scale=MSE)
+```
+
+```{r}
+# Forward selection.
+step(none,scope=list(upper=Full), 	scale=MSE,direction="forward")
+```
+
+
+```{r}
+# Stepwise regression
+step(none,scope=list(upper=Full),scale=MSE)
+```
+
+```{r}
+modelW6 = step(none,scope=list(upper=Full),scale=MSE, trace = FALSE)
+
+summary(modelW6)
+plot(modelW6)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+
+StateSAT <- read_csv("StateSAT.csv")
+```
+
+```{r}
+# Nonlinearity in dependency
+plot(SAT~., data=StateSAT[,2:8])
+```
+
+```{r}
+# Simple linear model
+modSAT1 = lm(SAT~Takers, data=StateSAT)
+summary(modSAT1)
+```
+
+```{r}
+# Three methods yielding the same result
+StateSAT$TakersSq=StateSAT$Takers^2
+modSATquad1=lm(SAT~Takers+TakersSq,data=StateSAT)
+summary(modSATquad1)
+
+modSATquad2 = lm(SAT~Takers+I(Takers^2),data=StateSAT)
+summary(modSATquad2)
+
+modSATquad3 = lm(SAT~poly(Takers,degree=2, raw=TRUE), data=StateSAT) 
+summary(modSATquad3)
+```

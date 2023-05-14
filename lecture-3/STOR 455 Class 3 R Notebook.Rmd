@@ -1,0 +1,100 @@
+---
+title: "STOR 455 Class 3 R Notebook"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r warning = FALSE, message=FALSE}
+library(readr)
+
+lego <- read_csv("lego.csv")
+
+head(lego)
+```
+
+```{r}
+# Use plot() to make scatter plots
+plot(Amazon_Price~Pieces, data=lego)
+```
+
+```{r}
+# This step creates a new dataset of lego sets with less than 2000 pieces
+lego_under_2k_pieces <- subset(lego, Pieces < 2000)
+```
+
+```{r}
+plot(Amazon_Price~Pieces, data = lego_under_2k_pieces)
+```
+
+```{r}
+# Use lm() to fit linear models of prices versus pieces
+# The ~ here separates the response and explanatory variables.
+lm(Amazon_Price~Pieces, data = lego_under_2k_pieces)
+```
+
+```{r}
+# we can save a fit into mod1,
+mod1 = lm(Amazon_Price~Pieces, data = lego_under_2k_pieces)
+plot(Amazon_Price~Pieces, data = lego_under_2k_pieces)
+abline(mod1)
+```
+
+```{r}
+# mod1 contains many useful objects.Use $ to extract them.
+# mod1$residuals extracts residuals of the fit.
+# mod1$fitted.values extracts the predictions of the response.
+summary(mod1)
+```
+
+```{r}
+head(mod1$residuals)
+head(mod1$fitted.values)
+
+plot(mod1$residuals - mod1$fitted.values)
+abline(0,0)
+```
+
+```{r}
+hist(mod1$residuals, breaks=20)
+
+qqnorm(mod1$residuals)
+qqline(mod1$residuals)
+```
+
+```{r}
+#Sets randomization
+set.seed(455001)
+#Sample of 99 values from a Normal distribution; mean=0; sd=1; sorted ascending
+x = sort(rnorm(99, 0, 1))
+hist(x)
+#list of integers 1 through 99.
+y=c(1:99)
+
+#z-scores of dataset of 99 values if perfectly normally distributed
+normy = qnorm(y/100)
+plot(x-normy)
+abline(0,1)
+```
+
+```{r}
+x <- rnorm(804, 0, 31.35)
+qqnorm(x)
+qqline(x)
+```
+
+```{r}
+plot(mod1)
+```
+
+```{r}
+lego_under_1100_pieces = subset(lego, Pieces<1100)
+mod2 = lm(Amazon_Price~Pieces, data = lego_under_1100_pieces)
+plot(Amazon_Price~Pieces, data=lego_under_1100_pieces)
+abline(mod2)
+```
+```{r}
+plot(mod2)
+```
+

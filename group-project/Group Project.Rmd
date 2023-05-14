@@ -1,0 +1,51 @@
+---
+title: 'STOR 455 Group Project (Due 5pm on April 19th)'
+subtitle: "Bowser's sole Koopa Troopa"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+---
+
+Cameron Kaplinger (730570002)
+
+# The Prediction (Required)
+Our prediction of the cumulative box office of "The Super Mario Bros. Movie" by May 5 is $821,996,057  
+
+# Summary of Justification (Required)
+
+I got the data set from boxofficemojo where I was able to see the domestic box office data of The Super Mario Bros. Movie from 4/5/2023-4/16/2023. After that, I was able to create my simple linear model and find the predicted cumulative box office by multiplying the slope by 30 and by adding the intercept. 
+
+# Data (Optional)
+```{r}
+library(readr)
+library(polynom)
+library(ggplot2)
+
+Data = read_csv("Mario - Sheet1.csv")
+head(Data)
+```
+
+
+```{r}
+SimpleModel = lm(`Domestic Gross`~Days, data = Data)
+
+Plot = ggplot(Data, aes(Days, `Domestic Gross`)) + geom_point()
+Plot + stat_smooth(method = "lm", formula = y ~ poly(x,1), se = FALSE)
+```
+
+
+# Analysis (Optional)
+```{r}
+cor(Data$`Domestic Gross`,Data$Days)
+
+PredictedGross = SimpleModel$coefficients[1] + (SimpleModel$coefficients[2] * 30)
+PredictedGross
+```
+
+
+# References (Optional)
+
+The data: https://www.boxofficemojo.com/release/rl1930593025/?ref_=bo_di_table_1

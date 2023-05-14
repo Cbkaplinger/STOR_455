@@ -1,0 +1,133 @@
+---
+title: "STOR 455 Class 6 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+```
+
+
+```{r}
+data("LongJumpOlympics2016")
+head(LongJumpOlympics2016)
+```
+
+
+```{r}
+# Data analysis with linear regression model. Try to do it by yourself.
+plot(Gold~Year, data = LongJumpOlympics2016)
+GoldModel = lm(Gold~Year, data = LongJumpOlympics2016)
+abline(GoldModel)
+
+plot(GoldModel, 1:2)
+```
+
+
+```{r}
+summary(GoldModel)
+```
+
+
+```{r}
+# An overview of residuals
+boxplot(GoldModel$residuals, horizontal=TRUE)
+# Again using max() and which() to find interesting residuals
+max(GoldModel$residuals)
+which.max(GoldModel$residuals)
+```
+
+
+```{r}
+# rstandard() provides the standardized residuals of a model. 
+rstandard(GoldModel)
+# Manual calculation of the standardized residuals. Will explain in future classes.
+# rmse <- sqrt(sum(GoldModel$residuals^2)/GoldModel$df.residual)
+# hv <- hatvalues(GoldModel)
+# GoldModel$residuals/rmse/sqrt(1-hv)
+rstandard(GoldModel)[16]
+```
+
+
+```{r}
+# Standardized residual plot
+plot(rstandard(GoldModel)~GoldModel$fitted.values)
+abline(0, 0)
+```
+
+
+```{r}
+# rstudent() provides the studentized residuals with the leave-one-out rmse.
+plot(rstudent(GoldModel)~GoldModel$fitted.values)
+abline(0, 0)
+
+rstudent(GoldModel)[16]
+```
+
+
+```{r}
+# Comparison of standardized residuals and studentized residuals
+data("SeaIce")
+IceModel3 = lm(Extent^5~t, data=SeaIce)
+plot(IceModel3)
+
+max(rstandard(IceModel3))
+max(rstudent(IceModel3))
+```
+
+
+```{r}
+# Data analysis with linear model. Try it by yourself.
+data("PalmBeach")
+head(PalmBeach)
+
+ElectionModel = lm(Buchanan~Bush, data = PalmBeach)
+
+plot(Buchanan~Bush, data = PalmBeach)
+abline(ElectionModel)
+```
+
+
+```{r}
+# Diagnostic plots of residuals.
+plot(ElectionModel, 1:2)
+
+plot(rstudent(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel)~ElectionModel$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel$residuals, horizontal = TRUE)
+```
+
+
+```{r}
+# Analysis without PalmBeach.
+newdata = subset(PalmBeach, County != "Palm Beach")
+
+ElectionModel_noPB = lm(Buchanan~Bush, data = newdata)
+
+summary(ElectionModel)
+summary(ElectionModel_noPB)
+```
+
+
+```{r}
+# Diagnostic plots of residuals.
+plot(ElectionModel_noPB, 1:2)
+
+plot(rstudent(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+plot(rstandard(ElectionModel_noPB)~ElectionModel_noPB$fitted.values)
+abline(0,0)
+
+boxplot(ElectionModel_noPB$residuals, horizontal = TRUE)
+```

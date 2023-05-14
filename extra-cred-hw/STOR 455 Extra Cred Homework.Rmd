@@ -1,0 +1,322 @@
+---
+title: 'STOR 455 Extra Credit HW. Due 04/30 11:55pm. Submit through Sakai Assignments.'
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+---
+
+
+```{r}
+library(Stat2Data)
+library(car)
+library(agricolae)
+data(Sparrows)
+data(Caterpillars)
+data(Retirement)
+data(Cereal)
+data(LewyDLBad)
+data(USstamps)
+data(MathEnrollment)
+data(BrainpH)
+data(Jurors)
+data(Handwriting)
+data(ElephantsFB)
+data(NCbirths)
+data(Blood1)
+data(MouseBrain)
+data(NCbirths)
+data(AutoPollution)
+```
+
+Page 175
+```{r}
+# Chapter 1 Exercises
+# 3, 5, 23, 27, 31, 47
+```
+
+```{r}
+# Exercise 3
+SparrowModel = lm(Weight~WingLength, data = Sparrows)
+SparrowModel$coefficients[2]
+```
+
+```{r}
+# Exercise 5
+SparrowModel$coefficients[1]
+```
+
+```{r}
+# Exercise 23
+plot(Weight~WingLength, data = Sparrows)
+abline(SparrowModel)
+
+hist(SparrowModel$residuals)
+
+plot(SparrowModel, 2)
+```
+Looking on the plot with the LSRL line there doesn't appear to be any significant outliers. The residual plot looks good and normal as the shape of the histogram is a bell curve. When looking at the qqplot the points are relatively linear indicating normality. Through all of these conditions a linear model seems to match the data very well.
+
+```{r}
+# Exercise 31
+CatLM = lm(Mass~Intake, data = Caterpillars)
+plot(Mass~Intake, data = Caterpillars)
+abline(CatLM)
+
+CatLog = lm(LogMass~LogIntake, data = Caterpillars)
+plot(Mass~Intake, data = Caterpillars)
+abline(CatLog)
+```
+For either of these relationships a linear model should not be used. The data points are heavily clustered in the bottom left of the graph and then further along the x-axis the values are all over the place meaning that a linear model would not be a good model for this data.
+
+```{r}
+# Exercise 47
+RetirementLM = lm(SRA~Year, data = Retirement)
+plot(SRA~Year, data = Retirement)
+abline(RetirementLM)
+
+plot(RetirementLM, 1)
+
+Dropped = Retirement[-c(7,15),]
+DroppedLM = lm(SRA~Year, data = Dropped)
+plot(SRA~Year, data = Dropped)
+abline(DroppedLM)
+
+plot(DroppedLM, 1)
+```
+The two years are 2003, 2011 with residuals of -5642.72 and -12200.96. When looking at both the regular graph and the residual graph these years are clear outliers being nowhere near the residual/lsrl line. When dropping the two years from the data set the model fits much better onto the datapoints. This is proven on the regular plot where most all the points are on the lsrl line or extremely close to the lsrl line. This is also true for the residual plot as there is consistent variance throughout the graph along with the points being close to the mean residual line.
+
+Page 250
+```{r}
+# Chapter 2 Exercises
+# 15, 17, 23
+```
+
+```{r}
+# Exercise 15
+CerealLM = lm(Calories~Sugar, data = Cereal)
+summary(CerealLM)
+
+confint(CerealLM, level = 0.95)
+```
+A. Using a t-test we are trying to see if there is a linear relationship between sugar and calories in cereal. The test statistic is 3.507. The Ho = 0 and states that there is no relationship between sugar and calories in cereal. The Ha != 0 and states that there is a relationship between sugar and calories. The p-value of this relationship is 0.001296. Since this value is bigger than 0 we reject the null hypothesis and can confirm that there is a linear relationship between sugar and calories.
+
+B. 95% confident for every gram of sugar in cereal there is between a 1.04 to 3.92 increase in calories.
+
+
+```{r}
+# Exercise 17
+cor(LewyDLBad$MMSE,LewyDLBad$APC)
+
+LewyLM = lm(LewyDLBad$MMSE~LewyDLBad$APC)
+plot(LewyLM, 1)
+
+summary(LewyLM)
+
+confint(LewyLM, level = 0.90)
+```
+A. The r between MMSE and APC is 0.6 which is pretty strong indicating a linear relationship between these two values. 
+B. When looking at the residual plot there is a good relationship as the variance throughout the graph is consistent and there is no significant clustering at any point.
+C. The estimated slope is 1.3444 and the standard error is 0.4225
+D. 90% confident for every APC there is between a 0.61 to 2.08 increase in MMSE. This interval does not contain 0. This confidence interval is related to part A due to the confidence interval being small meaning that there is a close relationship between these two variables proving the linear relationship.
+
+
+```{r}
+# Exercise 23
+USstamps = USstamps[-c(1:4),]
+
+USLM = lm(Price~Year, data = USstamps)
+summary(USLM)
+
+cor(USstamps$Price, USstamps$Year)
+
+anova(USLM)
+```
+A. The percent of variation between Price and Year is 95%
+B. The r between Price and Year is 0.97 which is incredibly high. This indicates that there is a significant linear relationship between Price and Year.
+C. The mean squares of year is 176.916 which when compared to the residuals is 1.329. This difference is super big meaning that the Year influences the price of stamps extremely heavily.
+
+Page 401
+```{r}
+# Chapter 3 Exercises
+# 21, 23, 29, 31, 35
+```
+
+```{r}
+# Exercise 21
+MathEnrollment = MathEnrollment[-c(3),]
+
+MathLM = lm(Spring~Fall+AYear, data = MathEnrollment)
+summary(MathLM)
+
+anova(MathLM)
+```
+A. The percent of variation between Spring and Fall+AYear is 87.1%
+B. The size of typical error for this model is 13.4
+C. The F-stat = 23.64, F-stat fromthe F distribution table is 3.2574 which is less than the ANOVA F-stat. Knowing this we reject the null.
+D. Using an F-test we are trying to see if there is a relationship between Spring enrollment and Fall+Year enrollment. The Ho = 0 and states that there is no relationship between Spring enrollment and Fall+Year enrollment. The Ha != 0 and states that there is a relationship between Spring enrollment and Fall+Year enrollment. The p-values in this relationship are 0.00138 and 0.002585. Since these values are bigger than 0 we can reject the null hypothesis and can confirm that there is a relationship between Spring enrollment and Fall+Year enrollment.
+
+
+```{r}
+# Exercise 23
+plot(pH~Age, col = Sex, data = BrainpH)
+
+BrainLM = lm(pH~Age, data = BrainpH)
+abline(BrainLM)
+cor(BrainpH$pH, BrainpH$Age)
+
+MaleLM = lm(BrainpH$pH~Age+(Sex=="M"), data = BrainpH)
+FemaleLM =  lm(pH~Age+(Sex=="F"), data = BrainpH)
+MaleLM
+FemaleLM
+```
+A. There seems to be no correlation between Age/pH. Also no correlation between both sexes as they are both sporadic and random.
+B. The R between pH and Age is -0.02 indicating that there is little to no correlation between these variables.
+C. 6.90 - 0.0004535(Male), 6.89 - 0.0004535(Female)
+
+```{r}
+# Exercise 29
+plot(PctReport~Period, data = Jurors, col = Year)
+
+JurorLM = lm(PctReport~Period, data = Jurors)
+#abline(JurorLM)
+cor(Jurors$PctReport, Jurors$Period)
+
+Year1 = lm(PctReport~Period+(Year=="1998"), data = Jurors)
+Year2 = lm(PctReport~Period+(Year=="2000"), data = Jurors)
+Year1
+Year2
+
+abline(Year1)
+abline(Year2)
+
+BigMod = lm(PctReport~Period+Year+Period*Year, data = Jurors)
+BigMod
+```
+A. There seems to be no correlation between period and PctReport. There does to be no improvement though from 1998 to 2000 as the pink dots seems to be lower while the gray dots tend to be up higher.
+B. The R between PctReport and Period is -0.44 meaning that there is decent correlation between these variable indicating a linear relationship.
+C. 94.92 - 0.72(1998), 77.08 - 0.72(2000). Looking at the intercepts there is no improvement as the intercept from 2000 is a lot lower than the intercept from 1998.
+D. -1.905e+04 + 9.643e+01(Period) + 9.573(Year) - 4.860e-02(Period*Year)
+
+
+```{r}
+# Exercise 31
+plot(Survey2~Survey1, col = Gender, data = Handwriting)
+HandLM = lm(Survey2~Survey1+factor(Gender), data = Handwriting)
+HandLM
+
+Men = lm(Survey2~Survey1+(Gender=="1"), data = Handwriting)
+Women = lm(Survey2~Survey1+(Gender=="0"), data = Handwriting)
+abline(Men)
+abline(Women)
+Men
+Women
+
+GendSurv = lm(Survey2~Survey1+factor(Gender)+Gender*Survey1, data = Handwriting)
+GendSurv
+```
+A. Women generally did better on both surveys with their intercept being higher. The slopes are the same.
+B. The intercept for women is 47.0928 while the intercept for men is 43.6305. This means that men do worse compared to women on the surveys.
+C. The intercept for this model is not within the range of the Men and Women models. This means that the intercept/slope is not significant for this relationship.
+
+
+```{r}
+# Exercise 35
+plot(Height~Age, data = ElephantsFB)
+
+Age2 = ElephantsFB$Age^2
+EleQuad = lm(Height~Age+Age2, data = ElephantsFB)
+EleQuad
+
+Elephant = 100.2 + 13.38*15 - 0.26*15^2
+Elephant
+```
+A. The scatter plot of Height and Age has a big curve that looks similar to a square root function
+B. 100.2 + 13.38(Age) - 0.26(Age)^2
+C. 242.4 centimeters for a 15 year old elephant.
+
+Page 517
+```{r}
+# Chapter 4 Exercises
+# 13, 15
+```
+
+# Exercise 13
+The mean birth weight for babies with White mothers is 117.87 ounces, the mean birth weight for babies with Black mothers is 110.56 ounces, the mean birth weight for babies with Hispanic mothers is 118.52 ounces, and the mean birth weight for babies with other mothers is 117.14 ounces. White mothers is the base while the other races in this model is based off of White Mothers.
+
+```{r}
+# Exercise 15
+BloodLM1 = lm(SystolicBP~Overwt, data = Blood1)
+BloodLM2 =lm(SystolicBP~factor(Overwt), data = Blood1)
+
+BloodLM1
+BloodLM2
+```
+Quantitative model = 136.23 + 8.44(Overweight)
+Factor model = 136.32 + 8.05(Overweight) + 16.87(Obese)
+Overall these models are very similiar with the intercepts being nearly identical and the slopes not being too far off from each other.
+
+Page 643
+```{r}
+# Chapter 5 Exercises
+# 27, 37, 45
+```
+
+```{r}
+# Exercise 27
+boxplot(Contacts~Genotype, data = MouseBrain)
+
+MouseLM = lm(Contacts~Genotype, data = MouseBrain)
+plot(MouseLM, 2)
+```
+A. The minus genotype has the lowest min, median, and max with also the smallest IQR compared to the other genotypes. The mixed genotype on the other hand has the highest min, median, and max with an IQR that's about the same with the plus genotype. 
+B. When looking at the qq plot of the model the points are very linear, meeting the conditions required for ANOVA
+
+```{r}
+# Exercise 37
+anova(MouseLM)
+```
+Using an F-test we are trying to see if there is a relationship between Genotype and Contacts. The Ho = 0 and states that there is no relationship between Genotype and Contacts. The Ha != 0 and states that there is a relationship between Genotype and Contacts. The p-value of this relationship is 0.006418. Since this value is bigger than 0 we reject the null hypothesis and can confirm that there is a relationship between Genotype and Contacts.
+
+```{r}
+# Exercise 45
+Fisher = LSD.test(MouseBrain$Contacts, MouseBrain$Genotype, 2, 142.698)
+Fisher
+```
+The mixed and plus are both very similar but have significantly more contacts when compared to the minus genotype as shown with the Min, Q1, Median, Q3, and Max.
+
+Page 1008
+```{r}
+# Chapter 8 Exercises
+# 3, 51, 55
+```
+
+```{r}
+# Exercise 3
+leveneTest(NCbirths$BirthWeightOz, factor(NCbirths$MomRace))
+```
+Using a levene test we are testing to see if the equality of variances is satisfied. The Ho = 0.05 and means that there is no relationship between the race of the mother and the birthweight. The Ha != 0.05 and means there is a relationship between the race of the mother and the birthweight. The p-value between these variances is 0.3413. Because the p-value is greater than 0.05 we fail to reject the null meaning that there is no relationship found.
+
+```{r}
+# Exercise 51
+NCbirths$Dummy = ifelse(NCbirths$MomRace == "white", "0", ifelse(NCbirths$MomRace == "hispanic", "1", ifelse(NCbirths$MomRace == "black", "2", "3")))
+
+BirthsMod = lm(BirthWeightOz~Dummy, data = NCbirths)
+BirthsMod
+```
+A. 3
+B. The mean birth weight for babies with white mothers is 117.87 Oz, the mean birth weight for babies with hispanic mothers is 118.52 Oz, the mean birth weight for babies with black mothers is 110.56 Oz, the mean birth weight for babies with other mothers is 117.15 Oz
+C. The tables are the same therefore no further analysis can be done.
+
+```{r}
+# Exercise 55
+# Dataset is messing up, can't figure out how to get it to work
+```
+
+Page 1167
+```{r}
+# Chapter 9 Exercises
+# 21, 33
+```

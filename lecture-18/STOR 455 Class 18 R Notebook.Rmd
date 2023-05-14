@@ -1,0 +1,177 @@
+---
+title: "STOR 455 - Class 18 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+library(polynom) # building polynomials from polynomial regression
+library(Stat2Data)
+
+StateSAT <- read_csv("StateSAT.csv")
+Pulse <- read_csv("Pulse.csv", show_col_types = FALSE)
+```
+
+
+```{r}
+# Cross validation illustrated with "Pulse.csv"
+set.seed(12345)
+# reording rows of the data
+rows <- sample(nrow(Pulse))
+Pulse_shuffled = Pulse[rows,]
+
+# Taking a subset of 80% observations at random as the training data
+PulseTrain=Pulse_shuffled[1:300,]      
+# Using the rest 20% data as testing data
+PulseHoldout=Pulse_shuffled[301:375,]   
+
+plot(Active~.,data=PulseTrain)
+```
+
+
+```{r}
+full = lm(Active~Rest + Hgt + Wgt + Sex + Smoke + factor(Exercise), data=PulseTrain)
+none = lm(Active~1, data=PulseTrain)
+MSE = (summary(full)$sigma)^2
+
+PulseTrainMod = step(none, scope = list(upper=full), scale=MSE, trace=FALSE)
+
+summary(PulseTrainMod)
+plot(PulseTrainMod)
+```
+
+
+```{r}
+#predict active heart rates for data in the holdout sample with the model made from the training data
+fitActive=predict(PulseTrainMod,newdata=PulseHoldout)
+
+#Actual active heart rates in holdout sample minus their predicted values
+holdoutresid=PulseHoldout$Active - fitActive
+
+#Center, spread, and shape for the distribution of holdouts
+mean(holdoutresid)
+mean(PulseTrainMod$resid)
+
+sd(holdoutresid)
+summary(PulseTrainMod)$sigma
+
+qqnorm(holdoutresid)
+qqline(holdoutresid)
+plot(PulseTrainMod,2)
+```
+
+```{r}
+# Correlation between Y and Y.hat
+cor(PulseHoldout$Active,fitActive)
+```
+
+```{r}
+#Correlation between predicted and actual active heart rates
+crosscorr=cor(PulseHoldout$Active,fitActive)
+crosscorr^2
+
+#Change in r^2 from the training to the holdout
+shrinkage = summary(PulseTrainMod)$r.squared-crosscorr^2
+shrinkage
+```
+
+
+```{r}
+# Overfitting illustrated with StateSAT data
+set.seed(12345)
+rows <- sample(nrow(StateSAT))
+StateSAT_shuffled = StateSAT[rows,]
+
+StateSATTrain=StateSAT_shuffled[1:40,]      
+StateSATHoldout=StateSAT_shuffled[41:50,]   
+```
+
+
+```{r}
+StateSATTrainMod=lm(SAT~poly(Takers, degree=30, raw=TRUE), data=StateSATTrain)
+
+#predict active heart rates for data in the holdout sample with the model made from the training data
+fitStateSAT=predict(StateSATTrainMod,newdata=StateSATHoldout)
+
+#Actual active heart rates in holdout sample minus their predicted values
+holdoutresid=StateSATHoldout$SAT - fitStateSAT
+
+#Center, spread, and shape for the distribution of holdouts
+mean(StateSATTrainMod$residuals)
+mean(holdoutresid)
+summary(StateSATTrainMod)$sigma
+
+#Correlation between predicted and actual active heart rates
+crosscor = cor(StateSATHoldout$SAT, fitStateSAT)
+crosscorr^2
+
+#Change in r^2 from the training to the holdout
+shrinkage = summary(StateSATTrainMod)$r.squared-crosscorr^2
+shrinkage
+```
+
+
+```{r}
+data("Perch")
+head(Perch)
+```
+
+
+```{r}
+# model to predict weight
+Perch_lm = lm(Weight~Length+Width+Width*Length, data=Perch)
+summary(Perch_lm)
+
+# Plots for residual analysis
+plot(Perch_lm)
+```
+
+
+```{r}
+# Double and triple the average leverage for 3 predictors
+2*(3+1)/56
+3*(3+1)/56
+
+Lev_indices = which(hatvalues(Perch_lm) >= 3*(3+1)/56)
+
+#Two cases with high leverage
+Perch[Lev_indices,]
+```
+
+
+```{r}
+#boxplots for the three variables in the model
+#points() is used to show the values for cases 1 and 40 that have high leverage
+#cex=3 is the type of symbol to show in the plot
+
+boxplot(Perch$Length, main="Length")
+points(Perch$Length[1], col="red", cex=3)
+points(Perch$Length[40], col="blue", cex=3)
+
+boxplot(Perch$Width, main="Width")
+points(Perch$Width[1], col="red", cex=3)
+points(Perch$Width[40], col="blue", cex=3)
+
+boxplot(Perch$Length*Perch$Width, main="Length*Width")
+points(Perch$Length[1]*Perch$Width[1], col="red", cex=3)
+points(Perch$Length[40]*Perch$Width[40], col="blue", cex=3)
+```
+
+
+```{r}
+# Shows 3 cases with high Cook's Distance
+Cooks_indices = which(cooks.distance(Perch_lm) >= 0.5)
+
+Perch[Cooks_indices,]
+
+# ',5' shows only the Cook's plot and not other residual diagnostics plots
+plot(Perch_lm,5)
+
+# 'v' draws a vertical line
+# lty chooses the type of line to draw (dashes)
+abline(v = 2*(3+1)/56, col="blue", lty=3)
+abline(v = 3*(3+1)/56, col="blue", lty=3)
+```

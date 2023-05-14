@@ -1,0 +1,122 @@
+---
+title: 'STOR 455 Homework #4'
+subtitle: "20 points - Due Tuesday 03/21 at 12:00pm"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+# Theory Part
+
+1. True or False: A variable in numbers must be quantitative. 
+
+Your answer: False, Zip codes have numbers but aren't quantitative
+
+2. Suppose we included a categorical predictor with 5 categories. What is the difference in the assumptions between regressing with a coding of 1 to 5 and regressing on the 4 dummy variables created by this categorical predictor? 
+
+Your answer: The coding of 1 to 5 assumes a linear relationship between the predictor and outcome, and equal differences between levels of the predictor. Regressing on the 4 dummy variables doesn’t assume linearity and equal difference, and allows a more flexible relationship between predictor and outcome.
+
+
+# Computing Part
+
+
+__Situation:__ Suppose that you are interested in purchasing a used vehicle. How much should you expect to pay?  Obviously the price will depend on the type of vehicle that you get (the model) and how much it's been used. For this assignment you will investigate how the price might depend on the vehicle's year, state, and odometer reading. We focus on three states in this homework "CA", "NC", and "NY."  
+ 
+__Data Source:__ To get a sample of vehicles, begin with the _UsedCars_ csv file. The data was acquired by scraping Craigslist for vehicles for sale across the southeastern United States. For this assignment you will choose model of cars. Construct a subset of the _vehiclesSE_ data for this model of vehicle. If your subset has cars with seemingly incorrect data (such as a price of $1, odometer reading of one million miles, year of 1900) you should remove those values from the data.
+
+__Directions:__ The code below should walk you through the process of selecting data from a particular model vehicle of your choice. The following R chunk begin with {r, eval=FALSE}. eval=FALSE makes this chunk not run when I knit the file. Before you knit this chunk, you should revert it to {r}.
+
+```{r}
+library(readr)
+library(car)
+library(leaps)
+library(tidyverse)
+
+vehicles_all <- read_csv("UsedCars.csv", show_col_types = FALSE)
+
+vehicles_3States = subset(vehicles_all, State=="NY"|State=="NC"|State=="CA")
+
+# Delete the ** below and enter your chosen model
+ModelOfMyChoice = "3"
+
+vehiclesSE= subset(vehicles_3States, Model==ModelOfMyChoice)
+```
+
+#### Include a Categorical predictor ####    
+
+1. Fit a multiple regression model using _Mileage_, and _State_ to predict the _Price_ of the vehicle.
+
+```{r}
+ThreeSeriesModel = lm(Price~State+Mileage, data = vehiclesSE)
+ThreeSeriesModel
+```
+
+
+2. Perform a hypothesis test to determine the importance of terms involving _State_ in the model constructed in question 1. List your hypotheses, p-value, and conclusion.
+
+```{r}
+Model2 = lm(Price~Mileage, data = vehiclesSE)
+anova(Model2, ThreeSeriesModel)
+```
+A t-test was used to see if there was a relationship between state, price, and mileage. The Ho states that p = 0 and there is no correlation between state, price, and mileage. The Ha states that p is != 0 and there is a correlation between state, price, and mileage. The p-values for the states are 0.445 and 0.116 which is significantly larger than 0.05. On the otherhand, the p-value for the mileage is less than 0.05 so that variable is correlated with price. Overall, we fail to reject the null hypothesis and can assume the state does not influence the price.
+
+
+3. Fit a multiple regression model using _Year_, _Mileage_, and _State_ to predict the _Price_ of the vehicle. 
+
+```{r}
+MultiModel = lm(Price~State+Mileage+Year, data = vehiclesSE)
+MultiModel
+```
+
+
+4. Perform a hypothesis test to determine the importance of terms involving _State_ in the model constructed in question 3. List your hypotheses, p-value, and conclusion.
+
+```{r}
+Model4 = lm(Price~Mileage+Year, data = vehiclesSE)
+anova(Model4, MultiModel)
+```
+A t-test was used to see if there was a relationship between year, state, price, and mileage. The Ho states that p = 0 and there is no correlation between year, state, price, and mileage. The Ha states that p is != 0 and there is a correlation between year, state, price, and mileage. The p-values for the states are 0.3163 and 0.0924 which is larger than 0.05. On the otherhand, the p-values for mileage and year is less than 0.05 so those variables are correlated with price. Overall, we fail to reject the null hypothesis and can assume the state does not influence the price.
+
+
+5. Fit a multiple regression model using _Year_, _Mileage_, _State_, and the interactions between _Year_ and _State_, and _Mileage_ and _State_ to predict the _Price_ of the vehicle. Refer this model as the _Full_ model.
+
+```{r}
+Full = lm(Price~State+Mileage+Year+Year*State+Mileage*State, data = vehiclesSE)
+Full
+```
+
+
+6. Perform a hypothesis test to determine the importance of the terms involving _State_ in the model constructed in question 5. List your hypotheses, p-value, and conclusion.
+
+```{r}
+anova(Model4, Full)
+```
+A t-test was used to see if there was a relationship between year, state, price, mileage, state and year, and state and mileage. The Ho states that p = 0 and there is no correlation between year, state, price, and mileage. The Ha states that p is != 0 and there is a correlation between year, state, price, and mileage, state and year, and state and mileage. The p-values for the states are 0.76371 and 0.00929. This means that for the state of New York it is correlated with price. For the interactions StateNC:Year, StateNC:Mileage, StateNY:Mileage these variables are all not correlated since they are above 0.05 but the StateNY:Year is below 0.05 so that is correlated. Although there is correlation with the StateNY and the StateNY:Year we fail to reject the null hypothesis and can assume the state does not influence the price.
+
+
+7. Select a subset of predictors in _Full_ using each of the four methods: all subsets, backward elimination, forward selection, and stepwise regression. Use Mallows' Cp (AIC) as the criterion.
+
+```{r}
+# All Subsets
+all = regsubsets(Price~State+Mileage+Year+Year*State+Mileage*State, data = vehiclesSE)
+summary(all)
+
+# Backward elimination
+MSE = (summary(Full)$sigma)^2
+step(Full, scale=MSE)
+
+# Forward selection
+none = lm(Price~1, data = vehiclesSE)
+step(none, scope = list(upper=Full), scale = MSE, direction = "forward")
+
+# Stepwise regression
+step(none, scope=list(upper=Full), scale = MSE)
+```
+When comparing the AIC of these models the best is Price ~ Mileage + Year + State + State:Year which has the lowest AIC value of 6.3.
+
+
+8. Assess and compare the overall effectiveness of the four models (some or all of them may be identical).
+
+The most effective model is the Price ~ Mileage + Year + State + State:Year model. The next closest is Price~State + Mileage + Year + State:Year + State:Mileage with an AIC of 9. After that it drops off heavily and are much less of a fit. Price ~ Mileage + Year with an AIC of 31.42, Price~Mileage with an AIC of 567.59, and Price~1 with an AIC of 10418.07. Overall, Price ~ Mileage + Year + State + State:Year is quite a good fit due to it's very low AIC value especially when compared to the other models.

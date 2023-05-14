@@ -1,0 +1,129 @@
+---
+title: "STOR 455 - Class 15 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+
+lego <- read_csv("lego.csv")
+lego_rm_AP_na = subset(lego, is.na(Amazon_Price) == FALSE)
+
+# Focus on two themes of "star wars" and "friends"
+lego2 = subset(lego_rm_AP_na, Theme == 'Star Wars' | Theme == 'Friends')
+head(lego2)
+```
+
+
+```{r}
+# two sample t-test with pooled variance
+t.test(Amazon_Price~Theme, data = lego2)
+```
+
+
+```{r}
+modlego=lm(Amazon_Price~Theme, data=lego2)
+summary(modlego)
+
+# Coding Theme as 0 for "Friends" and 1 for "Star Wars." R codes "Friends" as 0 since the first observation is from "Friends."
+lego2$Theme2 = lego2$Theme=="Star Wars"
+
+# Plotting the linear model with 0-1 coded Theme. The line passes the mean amazon prices in the two groups.
+plot(Amazon_Price~Theme2, data=lego2)
+abline(modlego,col="red")
+points(0,mean(lego2$Amazon_Price[lego2$Theme2==0]), col="red",cex=1,pch=16)
+points(1,mean(lego2$Amazon_Price[lego2$Theme2==1]), col="red",cex=1,pch=16)
+```
+
+
+```{r}
+# Fitting a multiple regression with both "Pieces" and "Theme."
+# In fitting this model, we assume that for the two groups, the effect of pieces is the same for every lego sets (no difference in the two themes).
+modlego2=lm(Amazon_Price~Pieces + Theme, data=lego2)
+summary(modlego2)
+```
+
+
+```{r}
+# Plotting the two groups separately with "modlego2". First we plot "Star Wars" lego sets.
+plot(Amazon_Price~Pieces, col="blue", data=subset(lego2,Theme=='Star Wars'))
+
+# Now we overlay the "Friends" lego sets. Note that we have to use points() here to add these points. Using plot() will generate a new plot.
+points(Amazon_Price~Pieces, col="green", data=subset(lego2,Theme=='Friends'))
+
+# Coefficients from "modlego2."
+B_Int = summary(modlego2)$coef[1,1]
+B_Pieces = summary(modlego2)$coef[2,1]
+B_Theme = summary(modlego2)$coef[3,1]
+
+# For "Friends" lego sets, the intercept is "B_Int."
+abline(
+  B_Int,
+  B_Pieces, 
+  col = "green", 
+  )
+# For "Friends" lego sets, the intercept is "B_Int+B_Theme" since "Theme" is 1 for this group. 
+
+abline(
+  B_Int + B_Theme,
+  B_Pieces,
+  col = "blue", 
+  )
+```
+
+
+```{r}
+# The effect of "Pieces" for "Star Wars" lego sets is 0.147646.
+StarWars=subset(lego2,Theme=='Star Wars')
+modelSW=lm(Amazon_Price~Pieces, data=StarWars)
+summary(modelSW)
+```
+
+
+```{r}
+# The effect of "Pieces" for "Friends" lego sets is 0.1123.
+Friends=subset(lego2,Theme=='Friends')
+modelF=lm(Amazon_Price~Pieces, data=Friends)
+summary(modelF)
+```
+
+
+```{r}
+# Plotting the two groups with their own simple linear models. Note the difference in slopes. 
+plot(Amazon_Price ~ Pieces, col="blue", data=StarWars)
+
+points(Amazon_Price ~ Pieces, col="green", data=Friends)
+
+abline(
+  summary(modelSW)$coef[1,1],
+  summary(modelSW)$coef[2,1], 
+  col = "blue"
+  )
+
+abline(
+  summary(modelF)$coef[1,1],
+  summary(modelF)$coef[2,1], 
+  col = "green", 
+  )
+```
+
+
+```{r}
+# The difference of the slope in different categories can be addressed by the interaction term "Pieces*Theme"
+# The t-test of slope for the interaction term is significant, showing the slopes in two groups are statistically significantly different. 
+modlegoint=lm(Amazon_Price ~ Pieces + Theme + Pieces*Theme, data=lego2)
+summary(modlegoint)
+```
+
+
+```{r}
+# ANOVA for the model with interaction term. p-values indicates the effect of adding one variable to the existing model.
+anova(modlegoint)
+```
+```{r}
+# Nested F-test for adding "Theme" for both indicator effect and the interaction effect. 
+modlego_Reduced = lm(Amazon_Price~Pieces, data=lego2)
+anova(modlego_Reduced, modlegoint)
+```

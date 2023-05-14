@@ -1,0 +1,38 @@
+---
+title: "STOR 455 - Class 20 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+library(polynom) # building polynomials from polynomial regression
+
+StateSAT2 <- read_csv("StateSAT2.csv")
+
+```
+
+
+```{r}
+# Example 1
+modSAT1 = lm(SAT~Takers+Region+Takers*Region, data = StateSAT2)
+# Check the slope of "Takers:RegionSoutheast"
+summary(modSAT1)
+
+# The long way by fitting each regression line.
+modMW = lm(SAT~Takers, data = StateSAT2[StateSAT2$Region == "Midwest",])
+modSE = lm(SAT~Takers, data = StateSAT2[StateSAT2$Region == "Southeast",])
+
+# Taking the difference of the two slopes. Same as the slope of "Takers:RegionSoutheast"
+summary(modSE)$coef[2,1] - summary(modMW)$coef[2,1]
+```
+
+
+```{r}
+# Example 2
+modSAT2 = lm(SAT~Takers+I(Takers^2)+Region+Takers*Region+I(Takers^2)*Region, data=StateSAT2)
+# Only need to specify "Takers" and "Regision"
+newdata = data.frame(Takers = 80, Region = "Southeast")
+predict.lm(modSAT2, newdata, interval = "prediction")
+```

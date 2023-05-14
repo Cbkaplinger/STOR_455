@@ -1,0 +1,141 @@
+---
+title: "STOR 455 - Class 11 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(car)
+library(corrplot) #Install first if needed
+library(leaps) #Install first if needed
+
+BodyFat <- read_csv("BodyFat.csv")
+
+source("ShowSubsets.R")
+```
+
+
+```{r}
+head(BodyFat)
+
+cor(BodyFat)
+
+corrplot(cor(BodyFat), type="upper")
+```
+
+
+```{r}
+plot(Bodyfat~., data=BodyFat)
+```
+
+
+```{r}
+# Only abdomen and wrist matter? what is the best model?
+modfat1 = lm(Bodyfat~., data=BodyFat)
+summary(modfat1)
+plot(modfat1)
+vif(modfat1)
+```
+
+
+```{r}
+# regsubsets() does all subset selection.
+all = regsubsets(Bodyfat ~ ., data = BodyFat)
+summary(all)
+```
+
+
+```{r}
+# set the maximal size of the subset with nvmax
+all2 = regsubsets(Bodyfat ~ ., data = BodyFat, nvmax = 5)
+summary(all2)
+```
+
+
+```{r}
+ShowSubsets(all)
+```
+
+
+```{r}
+# include 2 best subsets at each model size
+all3 = regsubsets(Bodyfat ~ ., data = BodyFat, nbest = 2)
+summary(all3)
+```
+
+
+```{r}
+# model with the highest adjusted R squared and smallest Mallows' Cp
+modfat2 = lm(Bodyfat ~ Age + Weight + Wrist + Abdomen, data=BodyFat)
+summary(modfat2)
+```
+
+
+```{r}
+plot(modfat2)
+vif(modfat2)
+```
+
+
+```{r}
+# compare best models with different sizes
+summary(modfat1)
+
+modfat3.1 = lm(Bodyfat~Age+Weight+Height+Chest+Abdomen+Ankle+Biceps+Wrist, data=BodyFat)
+summary(modfat3.1)
+
+modfat3.2 = lm(Bodyfat~Age+Weight+Chest+Abdomen+Ankle+Biceps+Wrist, data=BodyFat)
+summary(modfat3.2)
+
+modfat3.3 = lm(Bodyfat~Age+Weight+Chest+Abdomen+Biceps+Wrist, data=BodyFat)
+summary(modfat3.3)
+
+modfat3.4 = lm(Bodyfat~Age+Weight+Chest+Abdomen+Wrist, data=BodyFat)
+summary(modfat3.4)
+
+modfat3.5 = lm(Bodyfat~Age+Weight+Abdomen+Wrist, data=BodyFat)
+summary(modfat3.5)
+
+modfat3.6 = lm(Bodyfat~Weight+Abdomen+Wrist, data=BodyFat)
+summary(modfat3.6)
+```
+
+
+```{r}
+# Backward elimination with the default direction of step() 
+Full = lm(Bodyfat~., data = BodyFat)
+MSE = (summary(Full)$sigma)^2
+
+step(Full, scale=MSE)
+```
+
+
+```{r}
+# To use forward selection, we need to specify the model for initiation. Here we begin with a constant model.
+none = lm(Bodyfat~1, data=BodyFat)
+
+# Using step() and direction="forward" to do forward selection
+step(none, scope = list(upper=Full), scale = MSE, direction = "forward")
+```
+
+
+```{r}
+# If we only need the final selected model, we can omit the steps in the middle by setting trace=FALSE
+step(none, scope = list(upper=Full), scale = MSE, direction = "forward", trace = FALSE)
+```
+
+
+```{r}
+forward_step_mod = step(none, scope = list(upper=Full), scale = MSE, direction = "forward", trace = FALSE)
+summary(forward_step_mod)
+plot(forward_step_mod)
+```
+
+
+```{r}
+# stepwise regression
+step(none, scope=list(upper=Full), scale = MSE)
+```

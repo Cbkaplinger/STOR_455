@@ -1,0 +1,90 @@
+---
+title: "STOR 455 Class 24 R Notebook"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(car)
+
+Exams4 <- read_csv("Exams4.csv")
+
+
+Glue <- read_csv("Glue.csv")
+```
+
+
+```{r}
+# One-way ANOVA for each categorical factor
+amodA = aov(Grade~factor(Exam), data = Exams4) # for "Exam"
+summary(amodA)
+
+amodB = aov(Grade~Student, data = Exams4) # for "Student"
+summary(amodB)
+
+# Two-way ANOVA for both factors
+amodAB = aov(Grade~factor(Exam)+Student, data = Exams4)
+summary(amodAB)
+```
+
+
+```{r}
+# Tukey HSD
+TukeyHSD(amodAB)
+```
+
+
+```{r}
+# Tukey HSD Intervals for exams and students. Which group means are different?
+par(mar=c(4,7,3,1))
+hsd=TukeyHSD(amodAB)
+plot(hsd,las=2)
+par(mar=c(5,4,2,2))
+```
+
+
+```{r}
+# Two-way ANOVA with interaction. The interaction evaluates difference in differences of group means.
+Glue_model = aov(Force ~ Thickness + Type + Thickness*Type, data = Glue)
+summary(Glue_model)
+```
+
+```{r}
+# Tukey HSD invervals for interaction effects.
+TukeyHSD(Glue_model)[3]
+```
+
+
+```{r}
+# interaction.plot() illustrates difference in differences (slopes) in group means
+interaction.plot(Glue$Type, Glue$Thickness, Glue$Force)
+```
+
+
+```{r}
+# Can be used in either way...
+interaction.plot(Glue$Thickness, Glue$Type, Glue$Force)
+```
+
+
+```{r}
+# Levene's test of equal variance: ANOVA for absolute differences to medians 
+tapply(Exams4$Grade, Exams4$Student, median)
+medians = rep(tapply(Exams4$Grade, Exams4$Student, median), each=4)
+medians
+LeveneData = abs(Exams4$Grade - medians)
+LeveneData
+Levene_aov = aov(LeveneData~Exams4$Student)
+summary(Levene_aov)
+```
+
+
+```{r}
+# Levene's test in "car" package
+leveneTest(Grade~factor(Student), data = Exams4)
+```

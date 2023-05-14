@@ -1,0 +1,159 @@
+---
+title: "STOR 455 Final Exam Template"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(Stat2Data)
+library(metRology) # for curve plotting
+library(tidyr) # easy functions and syntax for creating tidy data
+library(car)    # useful functions for regressions
+library(corrplot) # for nice plots of correlation matrices
+library(leaps) # package for model selection
+library(polynom) # building polynomials from polynomial regression
+library(titanic)
+library(bestglm)
+library(gmodels) # Compute and test arbitrary contrasts
+library(epitools)
+```
+
+```{r}
+first_column = c(1,2,3,4,9)
+second_column = c(1,2,3,4,5)
+third_column = c(11,12,13,14,19)
+
+df = data.frame(first_column, second_column, third_column)
+cor(df$first_column, df$second_column)
+cor(df$third_column, df$second_column)
+```
+
+```{r}
+(10.25 - 1.27) / 0.128
+```
+
+```{r}
+data(BritishUnions)
+
+UnionLM = lm(NetSupport~Unemployment, data = BritishUnions)
+plot(NetSupport~Unemployment, data = BritishUnions)
+abline(UnionLM)
+plot(UnionLM, 1:4)
+hist(UnionLM$residuals)
+
+cor(BritishUnions$NetSupport, BritishUnions$Unemployment)
+
+sort(cooks.distance(UnionLM), decreasing=TRUE)
+```
+
+```{r}
+QuadUnion = lm(NetSupport~Unemployment+I(Unemployment^2), data = BritishUnions)
+summary(QuadUnion)
+
+CubicUnion = lm(NetSupport~Unemployment+I(Unemployment^2)+I(Unemployment^3), data = BritishUnions)
+anova(QuadUnion, CubicUnion)
+```
+
+```{r}
+data(ReligionGDP)
+head(ReligionGDP)
+
+ReligionMod = lm(GDP~Africa+EastEurope+MiddleEast+Asia+WestEurope+Religiosity, data = ReligionGDP)
+sort(rstudent(ReligionMod), decreasing = TRUE)
+```
+
+```{r}
+ReligionGDP$logGDP = log(ReligionGDP$GDP)
+
+Full = lm(logGDP~Africa+EastEurope+MiddleEast+Asia+WestEurope+Religiosity, data = ReligionGDP)
+hatvalues(Full)
+
+confint(Full)
+```
+
+```{r}
+MSE = (summary(Full)$sigma)^2
+none = lm(logGDP~1, data =ReligionGDP)
+Forward = step(none, scope = list(upper=Full), scale = MSE, direction = "forward")
+
+reduced = lm(logGDP ~ Religiosity + Africa + EastEurope + Asia, data = ReligionGDP)
+anova(reduced, Full)
+```
+
+```{r}
+x = subset(ReligionGDP, Americas == 1)
+mean(x$logGDP)
+
+#Values = data.frame(Religiosity = 1.2)
+#predict.lm(reduced, Values, interval = "prediction", level = 0.95)
+```
+
+```{r}
+data("titanic_train")
+head(titanic_train)
+```
+
+```{r}
+Titanic_logitmod = glm(Survived ~ Age, family = binomial, data=titanic_train)
+Titanic_logitmod$coef
+summary(Titanic_logitmod)
+
+plot(Survived ~ Age, data=titanic_train)
+B0 = summary(Titanic_logitmod )$coef[1]
+B1 = summary(Titanic_logitmod )$coef[2]
+
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red")
+```
+
+```{r}
+Titanic_logitmodP = glm(Survived ~ factor(Pclass), family = binomial, data=titanic_train)
+anova(Titanic_logitmodP, test="Chisq")
+
+
+Titanic_logitmodboth = glm(Survived ~ Age + factor(Pclass), family = binomial, data=titanic_train)
+anova(Titanic_logitmod, Titanic_logitmodboth, test="Chisq")
+
+960.23-827.16
+```
+
+```{r}
+data(NCbirths)
+
+NC = lm(BirthWeightGm~factor(MomRace), data = NCbirths)
+leveneTest(BirthWeightGm~factor(MomRace), data = NCbirths)
+
+anova(NC)
+plot(NC, 1:4)
+hist(NC$residuals)
+```
+```{r}
+NCbirths$Dummy = ifelse(NCbirths$MomRace == "white", "0", ifelse(NCbirths$MomRace == "hispanic", "1", ifelse(NCbirths$MomRace == "black", "2", "3")))
+
+BirthsMod = lm(BirthWeightGm~Dummy, data = NCbirths)
+BirthsMod
+```
+
+
+
+```{r}
+NCbirths$Squared = (NCbirths$BirthWeightGm)^2
+
+BirthsModSQ = aov(I(BirthWeightGm^2)~factor(MomRace), data = NCbirths)
+anova(BirthsModSQ)
+```
+
+```{r}
+qtukey(1-0.05,5,1450)
+
+2.0793e+16
+
+TukeyHSD(BirthsModSQ)
+```
+
+```{r}
+
+```
+

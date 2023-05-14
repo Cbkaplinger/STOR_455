@@ -1,0 +1,107 @@
+---
+title: "STOR 455 - Class 21 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(Stat2Data)
+# Study the relationship of the length of the putt and the chance of making the putt.
+data("Putts1")
+head(Putts1)
+```
+
+
+```{r}
+# The closer to the cup, the higher chance to make the putt.
+Putts.table = table(Putts1$Made, Putts1$Length)
+Putts.table
+```
+
+
+```{r}
+# Fitting the logistic regression with glm()
+modPutt=glm(Made~Length,family=binomial,data=Putts1)
+summary(modPutt)
+```
+
+
+```{r}
+# Manual calculation of the confidence interval for the odds ratio
+B0 = summary(modPutt)$coef[1]
+B1 = summary(modPutt)$coef[2]
+SE_B1 = summary(modPutt)$coef[2,2]
+
+# Numbers shown on the lecture 21 slide 5 for 
+B1 - SE_B1*qnorm(0.975)
+B1 + SE_B1*qnorm(0.975)
+
+
+exp(B1 - SE_B1*qnorm(0.975))
+exp(B1 + SE_B1*qnorm(0.975))
+```
+
+
+```{r}
+# Exponentiating the confidence interval for the odds ratio
+confint.default(modPutt)
+exp(confint.default(modPutt))
+```
+
+
+```{r}
+# Another CI method called the profile likelihood CI.
+confint(modPutt)
+exp(confint(modPutt))
+```
+
+
+```{r}
+# Null Deviance=800.21; Residual Deviance=719.89 
+summary(modPutt)
+```
+
+
+```{r}
+# Calculation of the Null Deviance
+table(Putts1$Made)
+
+# Made shots divided by the total shots
+338/(338+249)
+
+# Make percentage^made shots times miss percentage^missed shots
+L.null = (.576)^338*(1-.576)^249
+L.null
+
+# Calculates the null deviance
+-2*log(L.null)
+```
+
+
+```{r}
+# Calculation of the Residual Deviance (the one calculated column by column)
+L = 0.826^84*0.174^17*0.730^88*0.270^31*.605^61*.395^47*.465^61*.535^64*0.330^44*0.670^90
+L
+
+# Calculates the residual deviance
+-2*log(L)
+```
+
+
+```{r}
+# G statistic
+summary(modPutt)
+G = summary(modPutt)$null.deviance - summary(modPutt)$deviance
+G
+
+# Using the one tailed test with the g stat and the degrees of freedom
+1-pchisq(80.3, 1)
+```
+
+
+```{r}
+# Analysis of Deviance
+anova(modPutt, test="Chisq")
+```

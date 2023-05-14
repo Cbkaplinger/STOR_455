@@ -1,0 +1,135 @@
+---
+title: "STOR 455 Class 25 R Notebook"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+```{r message=FALSE, warning=FALSE}
+library(car)
+library(Stat2Data)
+library(gmodels) # Compute and test arbitrary contrasts
+```
+
+
+```{r}
+data("CancerSurvival")
+head(CancerSurvival)
+```
+
+
+```{r}
+# ANOVA F-test showing significant differences in means. Shall we believe it? 
+Cancermod = aov(Survival~Organ, data = CancerSurvival)
+summary(Cancermod)
+```
+
+
+```{r}
+# The conlusion of the F-test is not reliable...
+plot(Cancermod, 1:2)
+```
+
+
+```{r}
+# Levene's test of equal variance is significant.
+boxplot(Survival~Organ, data=CancerSurvival)
+tapply(CancerSurvival$Survival, CancerSurvival$Organ, sd)
+
+leveneTest(Survival~Organ, data=CancerSurvival)
+```
+
+
+```{r}
+# Transformations of data helps remove the issue of nonequal variance 
+boxplot(log(Survival)~Organ, data=CancerSurvival)
+tapply(log(CancerSurvival$Survival), CancerSurvival$Organ, sd)
+
+leveneTest(log(Survival)~Organ, data=CancerSurvival)
+```
+
+As shown with the p-value and the residual/qq plot below, the log model is a much better fit compared to the non transformed model
+```{r}
+# ANOVA F-test of the transformed data is reliable.
+Cancermod_log = aov(log(Survival)~Organ, data=CancerSurvival)
+summary(Cancermod_log)
+```
+
+
+```{r}
+# Better diagnostic plots
+plot(Cancermod_log, 1:2)
+```
+
+
+```{r}
+# Tukey HSD Comparisons
+TukeyHSD(aov(log(Survival)~Organ, data=CancerSurvival))
+```
+
+
+```{r}
+data("FruitFlies")
+head(FruitFlies)
+```
+
+
+```{r}
+# Are there difference in longevity across different groups?
+boxplot(Longevity~Treatment, data=FruitFlies)
+tapply(FruitFlies$Longevity,FruitFlies$Treatment, mean)
+tapply(FruitFlies$Longevity,FruitFlies$Treatment, sd)
+```
+
+
+```{r}
+# ANOVA and Tukey comparisons
+leveneTest(Longevity~Treatment, data=FruitFlies)
+
+Fly.mod = aov(Longevity~Treatment, data=FruitFlies)
+summary(Fly.mod)
+
+plot(Fly.mod, 1:2) 
+
+TukeyHSD(Fly.mod)
+```
+
+
+```{r}
+# Making a contrast comparing "virgin" groups and "pregnant" groups.
+summary(Fly.mod)
+Fly.MSE = summary(Fly.mod)[[1]][2,3]
+
+Contrast.SE = sqrt(Fly.MSE*((.5)^2/25+(-.5)^2/25+(.5)^2/25+(-.5)^2/25))
+
+contrast = sum(-0.5*mean(FruitFlies$Longevity[FruitFlies$Treatment=="1 virgin"]), 
+               -0.5*mean(FruitFlies$Longevity[FruitFlies$Treatment=="8 virgin"]),
+               0.5*mean(FruitFlies$Longevity[FruitFlies$Treatment=="1 pregnant"]),
+               0.5*mean(FruitFlies$Longevity[FruitFlies$Treatment=="8 pregnant"])
+)
+
+
+t.stat = contrast/Contrast.SE
+t.stat
+
+2*(1-pt(t.stat, 120))
+```
+
+Comparing 2 groups vs 2 groups so it's 0.5. 0 is None
+```{r}
+# fit.contrast() provides the inference of the contrast. 
+# The results are identical compared to those in the chunk above.
+tapply(FruitFlies$Longevity, FruitFlies$Treatment, mean)
+
+fit.contrast(Fly.mod, FruitFlies$Treatment, c(0.5, -0.5, 0.5, -0.5, 0))
+
+# Confidence intervals for the contrast
+fit.contrast(Fly.mod, FruitFlies$Treatment, c(0.5, -0.5, 0.5, -0.5, 0), conf.int=.95)
+```
+
+Comparing 4 groups so it's 0.25 vs 1 group
+```{r}
+# Comparing groups with female fruitflies and the "none" group.
+fit.contrast(Fly.mod, FruitFlies$Treatment, c(-0.25, -0.25, -0.25, -0.25, 1), conf.int=.95)
+```

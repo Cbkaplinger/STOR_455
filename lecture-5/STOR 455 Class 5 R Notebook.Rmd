@@ -1,0 +1,232 @@
+---
+title: "STOR 455 Class 5 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+ 
+ 
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted files
+
+library(readr)
+library(Stat2Data)
+
+```
+
+
+```{r}
+# We can load data from packages or the base of R with data()
+data("SpeciesArea")
+
+plot(Species~Area, data=SpeciesArea)
+SpeciesModel = lm(Species~Area, data = SpeciesArea)
+abline(SpeciesModel)
+
+plot(SpeciesModel$residuals~SpeciesModel$fitted.values)
+abline(0, 0)
+```
+
+
+```{r}
+# Locating the maximal residual
+max(SpeciesModel$residuals)
+
+which.max(SpeciesModel$residuals) # which.max gives the index of the maximum
+```
+
+
+```{r}
+SpeciesArea[3,]
+```
+
+
+```{r}
+SpeciesArea[SpeciesArea$Name=="Java",]
+```
+
+
+```{r}
+# another illustration of using which() with lego set
+lego <- read_csv("lego.csv")
+```
+
+
+```{r}
+# indices where condition is met
+which(lego$Amazon_Price == 4.99)
+
+# values for pieces using indicies where condition is met
+lego$Pieces[which(lego$Amazon_Price == 4.99)]
+```
+
+
+```{r}
+# Diagnostics of the second model with transformed data
+plot(log(Species)~log(Area), data=SpeciesArea)
+SpeciesModel2=lm(log(Species)~log(Area), data=SpeciesArea)
+abline(SpeciesModel2)
+```
+
+
+```{r}
+summary(SpeciesModel2)
+```
+
+
+```{r}
+plot(SpeciesModel2, 1:2)
+```
+
+
+```{r}
+# summary(SpeciesModel2)$coefficients lists all coefficients of SpeciesModel2 in a matrix
+summary(SpeciesModel2)$coefficients
+
+# Saving intercept in B0 and slope in B1
+B0 = summary(SpeciesModel2)$coefficients[1,1]
+B1 = summary(SpeciesModel2)$coefficients[2,1]
+```
+
+log(Species) =  B0 + B1*log(Area)
+
+Species = e ^(B0+ B1*(log(Area))
+
+Species = e ^(B0) e ^(B1*log(Area))
+
+Species = e ^(B0) e ^(log((Area)^B1))
+
+Species = e ^(B0) (Area^B1)
+
+
+```{r}
+# plotting the fit in the original scale
+plot(Species~Area, data=SpeciesArea)
+curve(exp(B0)*x^B1, add=TRUE)
+```
+
+
+```{r}
+# Another example of transformations with Sea Ice data
+data("SeaIce")
+head(SeaIce)
+```
+
+
+```{r}
+# Fit looks good in scatterplot. But...
+plot(Extent~t, data=SeaIce)
+IceModel1 = lm(Extent~t, data=SeaIce)
+abline(IceModel1)
+```
+
+
+```{r}
+# In the residual plot we identify nonlinearity
+plot(IceModel1$residuals~IceModel1$fitted.values)
+abline(0,0)
+
+abline(v=c(5.65,6.52), # Draws red dashed vertical lines at 5.65 and 6.52
+       col = c("red", "red"), # col = line color
+       lty = c(2, 2), # lty = line style
+       lwd = c(1, 1)) # lwd = line width
+
+plot(IceModel1, 1:2)
+```
+
+
+```{r}
+# Try a better fit by transforming Y. Still a bit nonlinear
+plot(Extent^5~t, data = SeaIce)
+IceModel2 = lm(Extent^5~t, data = SeaIce)
+abline(IceModel2)
+plot(IceModel2, 1:2)
+```
+
+
+```{r}
+# Another try
+plot(Extent^5~t,data = SeaIce)
+IceModel3 = lm(Extent^5~t, data = SeaIce)
+abline(IceModel3)
+```
+
+
+```{r}
+# There is no difference between the following two plots
+# Because R treats "t^3" as a formula object 
+plot(Extent~t, data=SeaIce)
+plot(Extent~t^3, data=SeaIce)
+
+# Use the "as is" function I() to transform predictors as numerical values
+plot(Extent~I(t^3), data=SeaIce)
+```
+
+
+```{r}
+# drawing the fit in the original data
+B0_Ice = summary(IceModel2)$coef[1, 1]
+B1_Ice = summary(IceModel2)$coef[2, 1]
+```
+(Extent)^5 =  B0_Ice + B1_Ice*t
+
+Extent = (B0_Ice + B1_Ice*t)^(1/5)
+
+
+```{r}
+plot(Extent~t, data = SeaIce)
+curve((B0_Ice+B1_Ice*x)^(1/5), add = TRUE)
+```
+
+
+```{r}
+# Standardizing residuals with long jump data
+data("LongJumpOlympics2016")
+head(LongJumpOlympics2016)
+```
+
+
+```{r}
+# fit looks good but residual 16 clearly out of the range.
+plot(Gold~Year, data = LongJumpOlympics2016)
+GoldModel = lm(Gold~Year, data = LongJumpOlympics2016)
+abline(GoldModel)
+
+plot(GoldModel, 1:2)
+```
+
+
+```{r}
+summary(GoldModel)
+```
+
+
+```{r}
+# Using boxplot over residuals to identify outliers.
+boxplot(GoldModel$residuals)
+```
+
+
+```{r}
+max(GoldModel$residuals)
+
+which.max(GoldModel$residuals)
+```
+
+
+```{r}
+# standardizing residuals so that they are unit-free.
+# look for standardized residuals with absolute values larger than 2 
+rstandard(GoldModel)
+
+rstandard(GoldModel)[16]
+```
+
+
+```{r}
+# Plotting studentizing residuals 
+plot(rstudent(GoldModel)~GoldModel$fitted.values)
+abline(0, 0)
+
+rstudent(GoldModel)[16]
+```

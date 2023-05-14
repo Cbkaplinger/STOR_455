@@ -1,0 +1,76 @@
+---
+title: "STOR 455 Class 9 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+
+lego <- read_csv("lego.csv")
+lego_under_800_pieces = subset(lego, Pieces < 800)
+```
+
+
+```{r}
+modlego2 = lm(Amazon_Price^(0.3)~Pieces, data=lego_under_800_pieces)
+
+plot(Amazon_Price^(0.3)~Pieces, data=lego_under_800_pieces)
+abline(modlego2, col="red")
+
+summary(modlego2)
+
+plot(modlego2, c(1, 2, 5))
+```
+
+
+```{r}
+# testing if a correlation is 0.
+cor.test(lego_under_800_pieces$Pieces, lego_under_800_pieces$Amazon_Price^(0.3))
+```
+
+
+```{r}
+# anova() provides the ANOVA table and the F-test.
+anova(modlego2)
+```
+
+
+```{r}
+# The same F-statistic from summary()
+summary(modlego2)
+```
+
+
+```{r}
+data("Houses")
+source("anova455.R")
+
+head(Houses)
+cor(Houses)
+```
+
+
+```{r}
+# cor.test(Houses) wouldn't work... need to write down each specific pair.
+
+cor.test(Houses$Size, Houses$Price)
+cor.test(Houses$Lot, Houses$Price)
+cor.test(Houses$Size,Houses$Lot)
+```
+
+
+```{r}
+HouseModel=lm(Price~Size+Lot,data=Houses)
+summary(HouseModel)
+anova(HouseModel)
+```
+
+
+```{r}
+# An alternative way to present the ANOVA table.
+anova455(HouseModel)
+```

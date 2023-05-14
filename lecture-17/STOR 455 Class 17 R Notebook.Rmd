@@ -1,0 +1,162 @@
+---
+title: "STOR 455 - Class 17 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(leaps)
+library(polynom) # building polynomials from polynomial regression
+
+StateSAT <- read_csv("StateSAT.csv")
+StateSAT2 <- read_csv("StateSAT2.csv")
+
+```
+
+
+```{r}
+# Simple linear model
+modSAT1 = lm(SAT~Takers, data=StateSAT)
+summary(modSAT1)
+plot(modSAT1)
+```
+
+
+```{r}
+# Three methods yielding the same result
+StateSAT$TakersSq=StateSAT$Takers^2
+modSATquad1=lm(SAT~Takers+TakersSq,data=StateSAT)
+summary(modSATquad1)
+
+modSATquad2 = lm(SAT~Takers+I(Takers^2),data=StateSAT)
+summary(modSATquad2)
+
+modSATquad3 = lm(SAT~poly(Takers,degree=2, raw=TRUE), data=StateSAT) 
+summary(modSATquad3)
+plot(modSATquad2)
+```
+```{r}
+# ANOVA tables are different with poly()
+anova(modSATquad2)
+anova(modSATquad3)
+```
+
+
+```{r}
+# Plotting the quadratic fit
+B0_modSATquad2 = summary(modSATquad2)$coef[1,1]
+B1_modSATquad2 = summary(modSATquad2)$coef[2,1] 
+B2_modSATquad2 = summary(modSATquad2)$coef[3,1]
+
+plot(SAT~Takers,main="Quadratic Model",data=StateSAT)
+curve(B0_modSATquad2 + B1_modSATquad2*x + B2_modSATquad2*x^2,add=TRUE)
+
+plot(modSATquad2)
+```
+
+
+```{r}
+# Consider the second order polynomial model with "Expend"
+modSAT2ndorder=lm(SAT~Takers+Expend+I(Takers^2)+I(Expend^2)+I(Takers*Expend),data=StateSAT)
+# The cross product (interaction) term between "Takers" and "Expend" is not significant 
+summary(modSAT2ndorder)
+```
+
+
+```{r}
+# Do we need the interaction term?
+modSAT2ndorder_Reduced=lm(SAT~Takers+Expend+I(Takers^2)+I(Expend^2),data=StateSAT)
+anova(modSAT2ndorder_Reduced,modSAT2ndorder)
+```
+
+
+```{r}
+# Do we need all second order terms?
+modSAT2ndorder_Reduced2=lm(SAT~Takers+Expend, data=StateSAT)
+anova(modSAT2ndorder_Reduced2, modSAT2ndorder)
+```
+
+
+```{r}
+# Do we need "Expend" at all?
+modSAT2ndorder_Reduced3 = lm(SAT~Takers+I(Takers^2),data=StateSAT)
+anova(modSAT2ndorder_Reduced3, modSAT2ndorder)
+```
+
+
+```{r}
+# Considering a categorical predictor "Region" with 5 levels
+# With the interaction terms, the model is considering 5 quadratic curves of "Takers." 
+# There are 14 slopes and 1 intercept describing the 5 quadratic curves.
+modSATquad2_byregion = lm(SAT ~ 
+                            Takers + 
+                            I(Takers^2) + 
+                            Region + 
+                            Takers*Region + 
+                            I(Takers^2)*Region, 
+                          data=StateSAT2
+                          )
+
+summary(modSATquad2_byregion)
+
+plot(modSATquad2_byregion)
+```
+
+
+```{r}
+# Does "Region" play a role?
+anova(modSATquad2, modSATquad2_byregion)
+```
+
+
+```{r}
+# Do we need a cubic term?
+modSATcubic = lm(SAT~Takers+I(Takers^2)+I(Takers^3),data=StateSAT)
+# Not very significant
+summary(modSATcubic)
+
+B0_modSATcubic = summary(modSATcubic)$coef[1,1]
+B1_modSATcubic = summary(modSATcubic)$coef[2,1] 
+B2_modSATcubic = summary(modSATcubic)$coef[3,1]
+B3_modSATcubic = summary(modSATcubic)$coef[4,1]
+
+plot(SAT~Takers,main="Cubic Model",data=StateSAT)
+curve(B0_modSATcubic + B1_modSATcubic*x + B2_modSATcubic*x^2 + B3_modSATcubic*x^3, add=TRUE)
+
+# The fit does not look different from a quadratic curve. 
+plot(modSATcubic)
+```
+
+
+```{r}
+# The VIFs are huge, showing redundancy
+# package::function is a shortcut of loading functions from a package.
+car::vif(modSATcubic)
+
+# ANOVA shows that the cubic term is not significant.
+anova(modSATquad2, modSATcubic)
+```
+
+
+```{r}
+# How about adding even higher order terms?
+modSAT10 = lm(SAT~poly(Takers, degree=10, raw=TRUE), data=StateSAT)
+modSAT10_coef = summary(modSAT10)$coef[,1]
+modSAT10_coef
+
+# polynomial() takes the coefficients and build a polynomial
+# as.function() creates a function of the polynomial
+modSAT10_poly = as.function(polynomial(modSAT10_coef))
+
+plot(SAT~Takers, data=StateSAT, main='10th Degree Polynomial')
+curve(modSAT10_poly, add = TRUE)
+```
+
+
+```{r}
+# The higher order terms is not significant
+anova(modSATquad2, modSAT10)
+```

@@ -1,0 +1,192 @@
+---
+title: "STOR 455 - Class 19 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(titanic)
+data("titanic_train")
+head(titanic_train)
+```
+
+
+```{r}
+# Use table() to count the number of observations in each category.
+table(titanic_train$Survived)
+```
+
+
+```{r}
+# Two-way table to show survival rate by class.
+table(titanic_train$Survived, titanic_train$Pclass)
+```
+
+
+```{r}
+# Fitting a least squares to study the relationship between "Survived" and "Fare."
+# Note here "Survived" is a binary categorical variable coded as 0 and 1.
+Titanic_mod=lm(Survived ~ Fare, data=titanic_train)
+summary(Titanic_mod)
+```
+
+
+```{r}
+# Show the fit. Does the line explain the relationship?
+plot(Survived  ~ Fare, data=titanic_train)
+abline(Titanic_mod, col="red")
+```
+
+
+```{r}
+# Use jitter() to alleviate overlapping points in categorical variables.
+ plot(
+   jitter(Survived, amount=0.1) ~ Fare, 
+   ylim = c(-0.25,1.25), 
+   data=titanic_train
+   )
+
+ abline(Titanic_mod, col="red")
+```
+
+
+```{r}
+# Diagnostic plots show that the linear model is not a great fit of data.
+plot(Titanic_mod, c(1,2,5))
+```
+
+
+```{r}
+# Use glm() to fit a generalized linear model.
+# Binary variables can be modeled through the binomial distribution.
+# The code belows fit a logistic regression (a special case of a generalized linear model).
+Titanic_logitmod = glm(Survived ~ Fare, family = binomial, data=titanic_train)
+summary(Titanic_logitmod)
+```
+
+
+```{r}
+# A logistic regression fits a smooth curve of probability of getting 1 as a function of "Fare." 
+plot(Survived ~ Fare, data=titanic_train)
+
+B0 = summary(Titanic_logitmod)$coef[1]
+B1 = summary(Titanic_logitmod)$coef[2]
+
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red")
+```
+
+
+```{r}
+# Randomly pick a passenger using sample(n,1). 
+set.seed(1)
+passenger = titanic_train[sample(nrow(titanic_train),1),]
+```
+
+
+```{r}
+# Prediction of the chance of survival for this passenger.
+passenger$Fare
+predict(Titanic_logitmod, passenger, type = "response")
+# Did the passenger survive?
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library(Stat2Data)
+# Study the relationship of the length of the putt and the chance of making the putt.
+data("Putts1")
+head(Putts1)
+```
+
+
+```{r}
+# The closer to the cup, the higher chance to make the putt.
+Putts.table = table(Putts1$Made, Putts1$Length)
+Putts.table
+```
+
+
+```{r}
+# Fitting the logistic regression with glm()
+modPutt=glm(Made~ Length, family = binomial, data=Putts1)
+```
+
+
+```{r}
+# Plotting the fitted probability curve 
+B0 = summary(modPutt)$coef[1]
+B1 = summary(modPutt)$coef[2]
+
+plot(jitter(Made,amount=0.1)~Length,data=Putts1)
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red")
+```
+
+
+```{r}
+# Proportion of making the putt at each of 3 to 7 feet.
+p.hat = as.vector(Putts.table[2,]/colSums(Putts.table))
+p.hat
+```
+
+
+```{r}
+# The inverse logit function, also called the sigmoid function in machine learning.
+# Use function(arguments){details} to create an R function 
+sigmoid = function(B0, B1, x)
+  {
+    exp(B0+B1*x)/(1+exp(B0+B1*x))
+  }
+```
+
+
+```{r}
+# Using the newly created function sigmoid() to produce fitted probabilities. 
+pi.hat = sigmoid(B0, B1, c(3:7))
+pi.hat
+```
+
+
+```{r}
+# Comparing the fitted probability and the actual proportion
+Putts = data.frame(
+  "Length" = c(3:7), 
+  "p.hat"  = p.hat, 
+  "pi.hat" = pi.hat)
+
+Putts
+```
+
+
+```{r}
+# Plotting the fitted sigmoid function for a range of length
+plot(p.hat~Length,ylim=c(0,1), xlim=c(0,12), data=Putts)
+curve(sigmoid(B0, B1, x),add=TRUE, col="red")
+```
+
+
+```{r}
+# Fitting the sample proportion with the sigmoid funciton. 
+plot(jitter(Made,amount=0.1)~Length,data=Putts1)
+
+points(p.hat~Length, data=Putts, col='blue')
+
+curve(sigmoid(B0, B1, x),add=TRUE, col="red")
+```
+
+
+```{r}
+# Odds computed for fitted and actual probabilities.
+Putts$p.Odds = Putts$p.hat/(1-Putts$p.hat)
+Putts$pi.Odds = Putts$pi.hat/(1-Putts$pi.hat)
+
+Putts
+```
+
+
+```{r}
+# Fitting a sigmoid function in logistic regression is equivalent to fitting a line in log odds.
+plot(log(p.Odds)~Length, data=Putts, xlim=c(2,8), ylim=c(-2,3))
+abline(B0, B1, col="red")
+```

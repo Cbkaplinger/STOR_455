@@ -1,0 +1,143 @@
+---
+title: 'STOR 455 Homework #6'
+subtitle: "20 points - Due Tuesday 04/20 at 12:00pm"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+# Theory Part
+
+1. Suppose the log odds is 0, what is the probability of sucess?
+
+Your answer: 50%. If the log odds are 0 then the actual odds is 1 meaning the probability is 50%. Like in sports betting when something is +100 the odds are 50%.
+
+2. Suppose we included a categorical predictor with 5 categories in a logistic regression. What is the degrees of freedom of the drop-in-deviance test when we test the effectiveness of this categorical predictor? 
+
+Your answer: 4. Since there are 5 categories, df would be n-1 or 4. 
+
+
+# Computing Part
+
+
+### Are Emily and Greg More Employable Than Lakisha and Jamal? ###
+
+Bertrand, M., & Mullainathan, S. (2004). Are Emily and Greg more employable than Lakisha and Jamal? A field experiment on labor market discrimination. _American Economic Review, 94_(4), pp. 991-1013.
+
+We perform a field experiment to measure racial discrimination in the labor market. We respond with fictitious resumes to help-wanted ads in Boston and Chicago newspapers. To manipulate perception of race, each resume is randomly assigned either a very African American sounding name or a very White sounding name. The results show significant discrimination against African-American names: White names receive 50 percent more callbacks for interviews. We also find that race affects the benefits of a better resume. For White names, a higher quality resume elicits 30 percent more callbacks whereas for African Americans, it elicits a far smaller increase. Applicants living in better neighborhoods receive more callbacks but, interestingly, this effect does not differ by race. The amount of discrimination is uniform across occupations and industries. Federal contractors and employers who list â€œEqual Opportunity Employerâ€ in their ad discriminate as much as other employers. We find little evidence that our results are driven by employers inferring something other than race, such as social class, from the names. These results suggest that racial discrimination is still a prominent feature of the labor market.    
+
+
+Variables     | Descriptions
+-----------   | -----------------------------------------------------
+_call_        | Was the applicant called back? (1 = yes; 0 = no)
+_ethnicity_   | indicating ethnicity ("Caucasian-sounding" vs. "African-American sounding" first name)
+_sex_         | indicating sex
+_quality_     | Indicating quality of resume.
+_experience_  | Number of years of work experience on the resume
+_equal_       | Is the employer EOE (equal opportunity employment)?
+
+
+Use the _ResumeNames455_ data on Sakai under "Resources/Data."
+
+```{r}
+library(readr)
+library(tidyverse)
+library(car)
+library(leaps)
+
+Resume = read_csv("ResumeNames455.csv")
+
+sigmoid = function(B0, B1, x)
+  {
+    exp(B0+B1*x)/(1+exp(B0+B1*x))
+  }
+```
+
+
+1) Construct a logistic model to predict if the job applicant was called back using _experience_ as the predictor variable.
+
+```{r}
+LogModel=glm(call~experience,family=binomial,data=Resume)
+summary(LogModel)
+```
+
+
+2) Plot the raw data and the sigmoid curve on the same axes.
+
+```{r}
+B0 = summary(LogModel)$coef[1]
+B1 = summary(LogModel)$coef[2]
+
+plot(call~experience, data = Resume)
+curve(exp(B0+B1*x)/(1+exp(B0+B1*x)),add=TRUE, col="red")
+```
+
+
+3) For an applicant with 6 years of experience, what does your model predict is the probability of this applicant getting called back?
+
+```{r}
+Res6 = Resume %>% filter(experience %in% c(6))
+
+set.seed(1)
+Random = Res6[sample(nrow(Res6),1),]
+
+predict(LogModel, Random, type = "response")
+```
+For an applicant with 6 years of experience the model predicts a 7.41% chance that the candidate would get called back.
+
+
+4) Use the model from question #1 to perform a hypothesis test to determine if there is significant evidence of a relationship between _call_ and _experience_. Cite your hypotheses, p-value, and conclusion in context.
+
+```{r}
+anova(LogModel, test="Chisq")
+```
+A Chi-Square test was used to see if there was a relationship between Call and Experience. The Ho states that p = 0 and there is no correlation between Call and Experience. The Ha states that p is != 0 and there is a correlation between Call and Experience. The p-value for experience is 4.298e^-5 which is greater than 0. From this we can reject the null hypothesis and can assume that there is a correlation between Call and Experience.
+
+5) Construct a confidence interval for the odds ratio for your model and include a sentence interpreting the interval in the context.
+
+```{r}
+SE_B1 = summary(LogModel)$coef[2,2]
+exp(confint.default(LogModel))
+```
+We are 95% confident that the odds ratio for experience would fall between 1.021 and 1.059.
+
+6) Does the number of years of work experience impact the relationship between _ethnicity_, _sex_, and an applicant getting called back? Construct a logistic model to predict if the job applicant was called back using _ethnicity_, _sex_, _experience_, and the interactions between _ethnicity_ and _experience_, and _sex_ and _experience_ as the predictor variables.
+
+```{r}
+Full=glm(call~experience+ethnicity+sex+ethnicity*experience+sex*experience,family=binomial,data=Resume)
+summary(Full)
+```
+
+
+7)  Conduct a drop in deviance hypothesis test to determine the effectiveness of the _experience_ terms in the model constructed in the previous question. Cite your hypotheses, p-value, and conclusion in context.
+
+```{r}
+anova(LogModel, Full, test="Chisq")
+```
+A drop in deviance test was used to determine the effectiveness. The Ho states that p = 0 for all variables in the Full model (ethnicity + sex + ethnicity * experience+ sex* experience). The Ha states that p != 0 for some variable in the Full model. The p-value for Full model is 8.707e^-5 which is greater than 0. From this we can reject the null hypothesis and can assume that experience is an effective predictor in determining if an individual will be called back.
+
+
+8)  Use an appropriate model selection method to construct a best model to predict if the job applicant was called back using any of the variables as predictors (except for _name_). You do not need to consider interaction terms. Why would you not want to use _name_ as a predictor?
+
+```{r}
+# All Subsets
+BigMod = lm(call~experience+ethnicity+sex+quality, data = Resume)
+
+all = regsubsets(call~experience+ethnicity+sex+quality, data = Resume)
+summary(all)
+
+# Backward elimination
+MSE = (summary(BigMod)$sigma)^2
+step(Full, scale=MSE)
+
+# Forward selection
+none = lm(call~1, data = Resume)
+step(none, scope = list(upper=BigMod), scale = MSE, direction = "forward")
+
+# Stepwise regression
+step(none, scope=list(upper=BigMod), scale = MSE)
+```
+
+When comparing the AIC of these models the best is call ~ experience + ethnicity + quality which has the lowest AIC value of 3.73. You wouldn't want to use name as a predictor because there is lots of variation between the names and it would just skew the correlation since there is a low likelihood people would have the same name. If we were to use name, our model would be all over the place and wouldn't be able to predict obscure names that aren't in the data set.

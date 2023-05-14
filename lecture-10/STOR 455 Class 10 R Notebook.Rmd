@@ -1,0 +1,183 @@
+---
+title: "STOR 455 Class 10 R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r warning=FALSE, message=FALSE}
+library(readr)
+library(Stat2Data)
+library(car)    # useful functions for regressions
+library(corrplot) # for nice plots of correlation matrices
+library(leaps) # package for model selection
+
+data("Houses")
+
+StateSAT <- read_csv("StateSAT.csv")
+BodyFat <- read_csv("BodyFat.csv")
+
+source("anova455.R")
+source("ShowSubsets.R")
+
+``` 
+
+
+```{r}
+head(Houses)
+cor(Houses) 
+```
+
+
+```{r}
+#cor.test(Houses)
+
+cor.test(Houses$Size, Houses$Price)
+cor.test(Houses$Lot, Houses$Price)
+cor.test(Houses$Size,Houses$Lot)
+```
+
+
+```{r}
+# Fitting a multiple regression of price on size and lot
+HouseModel = lm(Price~Size+Lot, data = Houses)
+summary(HouseModel)
+anova(HouseModel)
+```
+
+
+```{r}
+# Lot has a strong effect in predicting Size.
+mod=lm(Size~Lot, data=Houses)
+summary(mod)
+
+# 58 percent of variation in size is explained by lot
+summary(mod)$r.squared
+```
+
+
+```{r}
+# the strong effect of lot on size increased the variance of the SE of the slope of size by 2.43 times.
+VIF = 1/(1-summary(mod)$r.squared)
+VIF
+```
+
+
+```{r}
+# vif() finds the variance inflation factor (VIF) for multicollinearity
+vif(HouseModel)
+17.700/sqrt(2.427)
+1.313*sqrt(2.427)
+```
+
+
+```{r}
+head(StateSAT)
+```
+
+
+```{r}
+# another way to plot SAT versus other columns is plot(SAT~., StateSAT[,-1])
+plot(SAT~., data=StateSAT[,2:8])
+```
+
+
+```{r}
+# Regressing SAT on other variables. Takers is not significant
+SAT_Model = lm(SAT~., data=StateSAT[,2:8])
+plot(SAT_Model)
+summary(SAT_Model)
+```
+
+```{r}
+# Huge VIF for Takers and Rank.
+vif(SAT_Model)
+```
+
+
+```{r}
+head(BodyFat)
+
+cor(BodyFat)
+
+# A nice correlation matrix plot by corrplot()
+corrplot(cor(BodyFat), type="upper")
+```
+
+
+```{r}
+plot(Bodyfat~., data=BodyFat)
+```
+
+```{r}
+# Only abdomen and wrist matter? what is the best model?
+modfat1 = lm(Bodyfat~., data=BodyFat)
+summary(modfat1)
+plot(modfat1)
+vif(modfat1)
+```
+
+```{r}
+# regsubsets() does all subset selection.
+all = regsubsets(Bodyfat~., data = BodyFat)
+summary(all)
+```
+
+```{r}
+# including the full model
+all2 = regsubsets(Bodyfat~., data = BodyFat, nvmax=9)
+summary(all2)
+```
+
+```{r}
+# 
+ShowSubsets(all2)
+
+print.data.frame(ShowSubsets(all2))
+```
+
+```{r}
+# include 2 best subsets at each model size
+all3 = regsubsets(Bodyfat~., data = BodyFat, nvmax=9, nbest=2)
+ShowSubsets(all3)
+
+print.data.frame(ShowSubsets(all3))
+```
+
+
+```{r}
+# model with the highest adjusted R squared and smallest Mallows' Cp
+modfat2 = lm(Bodyfat ~ Age + Weight + Wrist + Abdomen, data = BodyFat)
+summary(modfat2)
+```
+
+
+```{r}
+plot(modfat2)
+vif(modfat2)
+```
+
+
+```{r}
+# compare best models with different sizes
+summary(modfat1)
+
+modfat3.1 = lm(Bodyfat~Age+Weight+Height+Chest+Abdomen+Ankle+Biceps+Wrist, data=BodyFat)
+summary(modfat3.1)
+
+modfat3.2 = lm(Bodyfat~Age+Weight+Chest+Abdomen+Ankle+Biceps+Wrist, data=BodyFat)
+summary(modfat3.2)
+
+modfat3.3 = lm(Bodyfat~Age+Weight+Chest+Abdomen+Biceps+Wrist, data=BodyFat)
+summary(modfat3.3)
+
+modfat3.4 = lm(Bodyfat~Age+Weight+Chest+Abdomen+Wrist, data=BodyFat)
+summary(modfat3.4)
+
+modfat3.5 = lm(Bodyfat~Age+Weight+Abdomen+Wrist, data=BodyFat)
+summary(modfat3.5)
+
+modfat3.6 = lm(Bodyfat~Weight+Abdomen+Wrist, data=BodyFat)
+summary(modfat3.6)
+```

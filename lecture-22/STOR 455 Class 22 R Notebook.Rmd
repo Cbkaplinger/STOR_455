@@ -1,0 +1,227 @@
+---
+title: "STOR 455 - Class 22 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(Stat2Data)
+library(bestglm)
+
+
+source("ShowSubsets.R")
+
+# The inverse sigmoid function, also called the sigmoid function in machine learning.
+# Use function(arguments){details} to create an R function 
+sigmoid = function(B0, B1, x)
+  {
+    exp(B0+B1*x)/(1+exp(B0+B1*x))
+  }
+```
+
+
+```{r}
+data("ICU")
+head(ICU)
+```
+
+
+```{r}
+# Coding the categorical variable as 1, 2, 3.
+ICUmod = glm(Survive~AgeGroup, data=ICU, family=binomial)
+
+summary(ICUmod)
+
+B0 = summary(ICUmod)$coef[1]
+B1 = summary(ICUmod)$coef[2]
+
+plot(jitter(Survive,amount=0.1)~AgeGroup,data=ICU)
+curve(sigmoid(B0, B1, x),add=TRUE, col="red")
+```
+
+
+```{r}
+# pi's are log odds fitted from the logistic regression.
+pi = sigmoid(B0, B1, ICU$AgeGroup)
+head(pi)
+
+odds = pi/(1-pi)
+head(odds)
+
+# Fitted log odds are on the line.
+# This is assuming the effect on log odds from group 1 to group 2 is the same as that from group 2 to group 3.  
+plot(log(odds)~ICU$AgeGroup)
+abline(B0,B1)
+```
+
+The log odds can be greater than 100 but the probability can't be greater than 1
+```{r}
+# Two way table of actual Counts
+ICU.table = table(ICU$Survive, ICU$AgeGroup)
+ICU.table
+
+# Two way table of actual Column Proportions.
+# prop.table(,1) divides by the row totals 
+# prop.table(,2) divides by the column totals 
+ICU.prop.table = prop.table(ICU.table,2)
+ICU.prop.table
+
+# Two way table of actual Column log odds
+# The second row (1's) provides the log odds
+
+logodds.ICU.table = log(ICU.prop.table/(1-ICU.prop.table))
+logodds.ICU.table
+```
+
+The t transform it into a matrix
+Switches the columns and rows from above
+```{r}
+# t() transposes the matrix
+logodds.ICU.df = t(as.data.frame.matrix(logodds.ICU.table))
+logodds.ICU.df
+```
+
+If the stars are on or near the line then it is fine to use quantitative variables
+```{r}
+# Comparing predicted vs. actual
+# Stars showing actual log odds.
+# Modifying ylim to make sure 
+plot(log(odds)~ICU$AgeGroup, ylim=c(.5, 2.5))
+abline(B0,B1)
+points(logodds.ICU.df[,2], col="dark red",pch="*")
+```
+
+Factor causes the variable to be treated as categorical
+2.38 is the log odds for the young group
+Factors (AgeGroup)2 and (AgeGroup)3 are comparing against the intercept(AgeGroup)1
+When interpreting this young people are a lot more likely to survive when compared to middle and old people
+```{r}
+# Fitting "AgeGroup" as categorical by applying factor() to "AgeGroup"
+ICUmod.2 = glm(Survive~factor(AgeGroup), data=ICU, family=binomial)
+summary(ICUmod.2)
+```
+
+
+```{r}
+# Analysis of deviance testing the overall effectiveness of "AgeGroup"
+anova(ICUmod.2, test="Chisq")
+
+# Manual calculation with G statistics.
+# Note that the degrees of freedom of G here is 2 for two dummy predictors
+Gstat = summary(ICUmod.2)$null.deviance - summary(ICUmod.2)$deviance
+1-pchisq(Gstat, 2)
+```
+
+
+```{r}
+# Considering another dummy predictor "Emergency"
+ICUmod.3 = glm(Survive~Emergency, data=ICU, family=binomial)
+summary(ICUmod.3)
+```
+
+If the person was both young and had an emergency then there would be high likelihood they would live compared to those other age groups with an emergency or those with no emergency
+```{r}
+# Adding both "AgeGroup" and "Emergency"
+ICUmod.4 = glm(Survive~factor(AgeGroup)+Emergency, data=ICU, family=binomial)
+summary(ICUmod.4)
+```
+
+
+```{r}
+# Test of drop of deviance on the effectiveness of "Emergency"
+G.emergency = summary(ICUmod.2)$deviance-summary(ICUmod.4)$deviance
+# The degree of freedom here is 1.
+1-pchisq(G.emergency, 1)
+```
+
+
+```{r}
+# Analysis of deviance way to get the same p-value as "G.emergency"
+anova(ICUmod.2, ICUmod.4, test="Chisq")
+```
+ 
+ 
+```{r}
+data(MedGPA)
+head(MedGPA)
+```
+
+
+```{r}
+# Preparing data for bestglm()
+MedGPA.1 = within(MedGPA, {Accept = NULL}) #delete Accept variable. Only the response and possible predictor variables should be within the dataframe
+
+head(MedGPA.1)
+
+MedGPA.2 = MedGPA.1[,c(2:10,1)] #reorder columns with response last. The response variable must be the last column in the dataframe.
+
+head(MedGPA.2)
+```
+
+
+```{r}
+bestglm(MedGPA.2, family=binomial)
+```
+
+For BIC
+0 to 2 is little
+2 to 6 is positive
+6 to 10 is strong
+Greater than 10 is very strong
+```{r}
+MedGPA.2.bestglm = bestglm(MedGPA.2, family=binomial)
+MedGPA.2.bestglm$BestModels
+```
+
+
+```{r}
+data("ICU")
+
+# Preparing data for bestglm()
+ICU.1 <- within(ICU, {ID = NULL}) #delete ID variable
+ICU.2 = ICU.1[,c(2:8,1)] #reorder columns with response last
+
+head(ICU.2)
+# bestglm() selects "AgeGroup" and "Emergency"
+bestglm(ICU.2, family=binomial)
+```
+
+
+```{r}
+# Changing "AgeGroup" into categorical by using factor()
+ICU_factor_AgeGroup = ICU.2 
+ICU_factor_AgeGroup$AgeGroup = factor(ICU_factor_AgeGroup$AgeGroup)
+
+head(ICU_factor_AgeGroup)
+
+bestglm(ICU_factor_AgeGroup, family=binomial)
+```
+
+Best five models by BIC
+```{r}
+ICU_factor_AgeGroup_bestglm = bestglm(ICU_factor_AgeGroup, family=binomial)
+ICU_factor_AgeGroup_bestglm$BestModels
+```
+
+
+```{r}
+# Manually making dummy predictors
+# ifelse(statement,value1,value2) evaluate the "statement" argument and assign "value1" if True and "value2" if false. 
+ICU.2$AgeGroup2 = ifelse(ICU.2$AgeGroup==2,1,0)
+ICU.2$AgeGroup3 = ifelse(ICU.2$AgeGroup==3,1,0)
+
+#delete AgeGroup variable
+ICU.3 <- within(ICU.2, {AgeGroup = NULL}) 
+
+#reorder columns with response last
+ICU.4 = ICU.3[,c(1:6,8,9,7)] 
+
+head(ICU.4)
+
+bestglm(ICU.4, family=binomial)
+
+ICU.4.bestglm = bestglm(ICU.4, family=binomial)
+ICU.4.bestglm$BestModels
+```

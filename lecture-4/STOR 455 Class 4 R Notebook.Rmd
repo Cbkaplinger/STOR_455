@@ -1,0 +1,101 @@
+---
+title: "STOR 455 Class 4 R Notebook"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+# message=FALSE, warning=FALSE suppress warnings and messages from appearing in knitted file
+
+library(readr)
+library(Stat2Data)
+
+Planets <- read_csv("Planets.csv")
+```
+
+
+```{r}
+head(Planets,9)
+```
+
+
+```{r}
+plot(Year~Distance, data=Planets)
+mod2 = lm(Year~Distance, data=Planets)
+abline(mod2)
+```
+
+
+```{r}
+plot(mod2$residuals~mod2$fitted.values)
+abline(0,0)
+
+qqnorm(mod2$residuals)
+qqline(mod2$residuals)
+```
+
+
+```{r}
+# plot(model) provides 4 diagnostic plots. In this class we look at the first two of them.
+plot(mod2, 1:2) 
+```
+
+```{r}
+# Use par() to reset displaying formats. Here "mfrow" divides the window into 2 rows and 2 columns to present 4 plots together.
+# log() is the logarithm function with base e. Here it is used to transform data.
+par(mfrow=c(2,2))
+
+plot(Year~Distance, data=Planets)
+plot(log(Year)~Distance, data=Planets)
+plot(Year~log(Distance), data=Planets)
+plot(log(Year)~log(Distance), data=Planets)
+```
+
+
+```{r}
+mod3 = lm(log(Year)~log(Distance), data=Planets)
+
+plot(log(Year)~log(Distance), data=Planets)
+abline(mod3)
+```
+
+```{r}
+plot(mod3, 1:2)
+```
+```{r}
+summary(mod3)
+```
+
+
+The following calculation provides the nonlinear model.
+
+log(Year) =  -0.0034399 + 1.5020611*log(Distance)
+
+Year = e ^(-0.0034399 + 1.5020611(log(Distance))
+
+Year = e ^(-0.0034399) e ^((1.5020611)(log(Distance))
+
+Year = e ^(-0.0034399) e ^(log(Distance ^1.5020611))
+
+Year = e ^(-0.0034399) (Distance^1.5020611)
+
+
+```{r}
+exp(-0.0034339)
+```
+
+Year = 0.996572(Distance^1.5020611)
+
+```{r}
+plot(Year~Distance, data=Planets)
+curve(0.996572*(x^1.5020611), add=TRUE)
+```
+
+```{r}
+# A better way to extract model coefficients is by assigning them to an object.
+# "summary(mod3)$coefficients" gives a summary matrix of quantities from the fit.
+# For a matrix M, use "M[i,j]" to extract the entry in the i-th row and j-th column in M.
+summary(mod3)
+```

@@ -1,0 +1,150 @@
+---
+title: 'STOR 455 Midterm 2'
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+---
+
+You can write your R code for STOR 455 midterm 2 here. There is no need to submit your work in this file, but you can keep this file for future reference.
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(polynom)
+library(car)
+library(leaps)
+library(tidyverse)
+library(titanic)
+
+lego <- read_csv("lego.csv")
+lego_rm_AP_na = subset(lego, is.na(Amazon_Price) == FALSE)
+
+# Focus on two themes of "star wars" and "friends"
+lego2 = subset(lego_rm_AP_na, Theme == 'Star Wars' | Theme == 'Friends')
+
+Turtles2 = read_csv("Turtles2.csv")
+source("ShowSubsets.R")
+Turtles3 = subset(Turtles2, LifeStage == "Adult")
+
+StateSAT = read_csv("StateSAT.csv")
+Pulse = read_csv("Pulse.csv", show_col_types = FALSE)
+
+data("titanic_train")
+
+vehicles_all <- read_csv("UsedCars.csv", show_col_types = FALSE)
+vehicles_3States = subset(vehicles_all, State=="NY"|State=="NC"|State=="CA")
+ModelOfMyChoice = "3"
+vehiclesSE= subset(vehicles_3States, Model==ModelOfMyChoice)
+```
+
+Interaction is when two variables are multiplied together
+In the anova table variable1:variable2 are the variables that are multiplied together
+
+A nested F-test can show the indicator effect and the interaction effect
+For example:
+```{r}
+LegoMod = lm(Amazon_Price ~ Pieces + Theme + Pieces*Theme, data=lego2)
+LegoMod_Reduced = lm(Amazon_Price~Pieces, data=lego2)
+anova(LegoMod_Reduced, LegoMod)
+```
+
+Factor turns a categorical variable into something R understands called an indicator
+```{r}
+# Making dummy variables with the categorical predictor.
+Turtles3$NoPrecip=(Turtles3$Weather==1)*1
+Turtles3$Drizzle=(Turtles3$Weather==2)*1
+Turtles3$Rain=(Turtles3$Weather==3)*1
+
+exam_model = lm(Annuli~Mass+factor(Weather)+I(Mass)^2+MaxCW+I(MaxCW)^2+I(Mass*MaxCW)+I, data = Turtles3)
+
+# The dummy predictors reflect the uneven changes in group means. Here the third category "Rain" is the baseline when NoPrecip and Drizzle are 0.
+modelW2 = lm(Annuli ~ NoPrecip + Drizzle, data = Turtles3)
+
+# Equivalent model. But R uses the first category as the baseline.
+# factor() converts a numerical vector into categorical.
+modelW3=lm(Annuli~factor(Weather),data=Turtles3)
+
+# A model with both quantitative and categorical predictors. Note here the effect of "Mass" is considered to be the same across different categories of "Weather."
+modelW4=lm(Annuli~Mass+factor(Weather),data=Turtles3)
+```
+
+
+If I want to make a function that's quadratic or cubic
+ANOVA also looks different if being used with a polynomial function
+I is used in the linear model to prevent a new variable from being created
+```{r}
+modSATquad2 = lm(SAT~Takers+I(Takers^2),data=StateSAT)
+
+modSATcubic = lm(SAT~Takers+I(Takers^2)+I(Takers^3),data=StateSAT)
+
+# If we want to go even higher with the degrees
+modSAT10 = lm(SAT~poly(Takers, degree=10, raw=TRUE), data=StateSAT)
+```
+
+
+A model may reflect the structure of a particular sample but not generalize well to the population
+The cross validation correlation between predicted and actual response values for a holdout sample
+Remember that shrinkage in cross validation can be negative. The holdout sample is a random sample from a data set that is withheld and not used in the model fitting process
+Training R^2 - Holdout R^2 is known as the shrinkage
+Generally since the model is optimized by the training data we expect less R^2 for the holdout
+```{r}
+# Cross validation illustrated with "Pulse.csv"
+set.seed(12345)
+# reording rows of the data
+rows <- sample(nrow(Pulse))
+Pulse_shuffled = Pulse[rows,]
+
+# Taking a subset of 80% observations at random as the training data
+PulseTrain=Pulse_shuffled[1:300,]      
+# Using the rest 20% data as testing data
+PulseHoldout=Pulse_shuffled[301:375,]
+
+# Creates the full model, the none model, and the MSE(Mean Squared Error)
+full = lm(Active~Rest + Hgt + Wgt + Sex + Smoke + factor(Exercise), data=PulseTrain)
+none = lm(Active~1, data=PulseTrain)
+MSE = (summary(full)$sigma)^2
+
+PulseTrainMod = step(none, scope = list(upper=full), scale=MSE, trace=FALSE)
+
+# Uses the training model and the testing data to predict active heart rates
+fitActive=predict(PulseTrainMod,newdata=PulseHoldout)
+
+# Change in r^2 from the training to the holdout
+crosscorr=cor(PulseHoldout$Active,fitActive)
+shrinkage = summary(PulseTrainMod)$r.squared-crosscorr^2
+
+# Shows cases with a high Cook's Distance
+Cooks_indices = which(cooks.distance(full) >= 0.5)
+```
+
+
+```{r}
+# Use glm() to fit a generalized linear model.
+# Binary variables can be modeled through the binomial distribution.
+# The code belows fit a logistic regression (a special case of a generalized linear model).
+Titanic_logitmod = glm(Survived ~ Fare, family = binomial, data=titanic_train)
+plot(Survived~Fare, data=titanic_train)
+```
+
+
+Model selection methods
+```{r}
+Full = lm(Price~State+Mileage+Year+Year*State+Mileage*State+I(Mileage)^2, data = vehiclesSE)
+
+all = regsubsets(Price~State+Mileage+Year+Year*State+Mileage*State+I(Mileage)^2, data = vehiclesSE)
+summary(all)
+
+# Backward elimination
+MSE = (summary(Full)$sigma)^2
+step(Full, scale=MSE)
+
+# Forward selection
+none = lm(Price~1, data = vehiclesSE)
+step(none, scope = list(upper=Full), scale = MSE, direction = "forward")
+
+# Stepwise regression
+step(none, scope=list(upper=Full), scale = MSE)
+```
+

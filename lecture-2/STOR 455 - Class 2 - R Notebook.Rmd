@@ -1,0 +1,144 @@
+---
+title: "STOR 455 - Class 2 - R Notebook"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+# Quick links
+
+Useful links for your future reference.
+
+* [RMarkdown cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf)
+* [RMarkdown options](https://yihui.name/knitr/options/)
+* [More cheatsheets](https://www.rstudio.com/resources/cheatsheets/)
+* [R for Data Science](https://r4ds.had.co.nz)
+* [Advanced R](http://adv-r.had.co.nz)
+
+```{r}
+3*2 
+```
+
+
+```{r warning = FALSE, message=FALSE}
+# loads packages needed
+# R pacakges contain useful functions to analyze data
+# install a package before first using it for the first time
+# to install a package, click the "package" tab in the lower right pane and click "install"
+
+library(readr)
+library(mosaic)
+
+# lego.csv can be found under "resources" on Sakai.
+# lego.csv must be saved in the same folder as this notebook!
+
+lego <- read_csv("lego.csv") # read_csv is a pre-written function in the package "readr"
+
+# lego.csv is read by R as "lego" and stored in the format of dataframe
+# Shows the variables and first 6 cases (by default)
+
+head(lego)
+```
+```{r}
+# use dataframe$variable_name to extract one variable in the data
+mean(lego$Amazon_Price)
+```
+
+```{r}
+# setting na.rm=TRUE to remove observations with NA in the calculation of mean and median
+mean(lego$Amazon_Price, na.rm=TRUE)
+median(lego$Amazon_Price, na.rm=TRUE)
+```
+
+```{r}
+# making histograms and boxplots of each variable to learn the shape of distrbutions.
+hist(lego$Amazon_Price)
+boxplot(lego$Amazon_Price, horizontal=TRUE)
+```
+
+```{r}
+# use which() to extract interesting observations 
+max(lego$Amazon_Price, na.rm=TRUE)
+which(lego$Amazon_Price==699.95)
+lego[826,]
+```
+
+
+```{r}
+# Assignment operators in R: = vs. <-
+xbar = mean(lego$Amazon_Price, na.rm=TRUE)
+m = median(lego$Amazon_Price, na.rm=TRUE)
+
+residxbar = lego$Amazon_Price - xbar
+residm = lego$Amazon_Price - m
+```
+
+```{r}
+# returns NA because we used lego$Amazon_Price to assign values in residxbar and residm
+sum(residxbar^2)
+sum(residm^2)
+```
+
+```{r}
+# using subset() to remove NA Amazon_Prices
+lego_rm_AP_na = subset(lego, is.na(Amazon_Price) == FALSE)
+```
+
+```{r}
+# Assignment operators in R: = vs. <-
+xbar = mean(lego_rm_AP_na$Amazon_Price, na.rm=TRUE)
+m = median(lego_rm_AP_na$Amazon_Price, na.rm=TRUE)
+
+residxbar = lego_rm_AP_na$Amazon_Price - xbar
+residm = lego_rm_AP_na$Amazon_Price - m
+```
+
+```{r}
+# no problem now. why does residxbar lead to a smaller sum of squared errors? 
+sum(residxbar^2)
+sum(residm^2)
+```
+
+```{r}
+# other useful functions to describe the data.
+mean(Amazon_Price~Theme, data=lego_rm_AP_na)
+```
+```{r}
+tally(~Theme, data=lego_rm_AP_na)
+```
+
+
+```{r}
+sd(Amazon_Price~Theme, data=lego_rm_AP_na)
+```
+
+
+```{r}
+boxplot(Amazon_Price~Theme, data=lego_rm_AP_na, horizontal=TRUE)
+```
+
+```{r}
+# extract observations from two themes using subset()
+# "|" represents "or" and "&" represents "and"
+
+lego_two_themes = subset(lego_rm_AP_na, Theme == "Friends" | Theme == "Marvel")
+lego_two_themes
+```
+
+```{r}
+# two-sample t test
+t.test(Amazon_Price~Theme, data=lego_two_themes)
+
+```
+
+```{r}
+# boxplot comparison of the two themes. any visible difference?
+boxplot(Amazon_Price~Theme, data=lego_two_themes, horizontal=TRUE)
+```
+
+```{r}
+# export data with write.csv()
+write.csv(lego_two_themes, file = "lego_two_themes.csv", row.names=FALSE)
+```
